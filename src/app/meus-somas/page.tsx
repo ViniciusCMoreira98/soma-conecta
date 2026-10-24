@@ -7,9 +7,9 @@ import { JOIN_STATUS_LABEL, STATUS_LABEL, WEEKDAY_LABEL, formatDate, formatTime 
 
 export const metadata = { title: "Meus SOMAS" };
 
-export default async function MeusSomasPage({ searchParams }: { searchParams: Promise<{ enviado?: string }> }) {
+export default async function MeusSomasPage({ searchParams }: { searchParams: Promise<{ enviado?: string; saiu?: string }> }) {
   const { supabase, profile, user } = await requireCompleteProfile();
-  const { enviado } = await searchParams;
+  const { enviado, saiu } = await searchParams;
 
   const [{ data: memberships }, { data: joinReqs }, { data: myRegs }] = await Promise.all([
     supabase.from("soma_members").select("role, soma:somas(id, name, neighborhood, weekday, start_time)")
@@ -34,6 +34,7 @@ export default async function MeusSomasPage({ searchParams }: { searchParams: Pr
         <Link href="/cadastrar-soma" className="btn-secondary">Cadastrar meu SOMA</Link>
       </div>
 
+      {saiu && <div className="mt-4"><Alert tone="success">Liderança transferida. Você saiu do SOMA.</Alert></div>}
       {enviado && <div className="mt-4"><Alert tone="success">Solicitação enviada! Avisaremos você quando a administração decidir.</Alert></div>}
 
       <h2 className="mb-3 mt-6 font-bold text-stone-800">Grupos dos quais participo</h2>

@@ -21,7 +21,7 @@ export default async function NotificacoesPage() {
   const unread = items?.filter((n) => !n.read_at).length ?? 0;
 
   return (
-    <AppShell profile={profile} unread={unread}>
+    <AppShell profile={profile}>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold text-soma-900">Notificações</h1>
         {unread > 0 && (
@@ -48,7 +48,8 @@ export default async function NotificacoesPage() {
               );
               return (
                 <li key={n.id} className="card py-3">
-                  {n.link ? <Link href={n.link} className="block">{inner}</Link> : inner}
+                  {/* Abrir pela rota /notificacoes/abrir marca a notificação como lida antes de seguir o link */}
+                  {n.link || !n.read_at ? <Link href={`/notificacoes/abrir/${n.id}`} className="block">{inner}</Link> : inner}
                 </li>
               );
             })}

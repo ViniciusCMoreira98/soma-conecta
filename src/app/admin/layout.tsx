@@ -8,6 +8,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin", label: "Painel" },
     { href: "/admin/solicitacoes", label: "Solicitações" },
     { href: "/admin/somas", label: "SOMAS" },
+    { href: "/admin/usuarios", label: "Usuários" },
+    { href: "/admin/denuncias", label: "Denúncias" },
+    { href: "/admin/lgpd", label: "LGPD" },
+    { href: "/admin/historico", label: "Histórico" },
   ];
   return (
     <AppShell profile={profile}>

@@ -3,9 +3,13 @@ import Link from "next/link";
 export default function SomaTabs({ somaId, active, isLeader }: { somaId: string; active: string; isLeader: boolean }) {
   const tabs = [
     { key: "geral", href: `/somas/${somaId}`, label: "Visão geral" },
+    { key: "reunioes", href: `/somas/${somaId}/reunioes`, label: "Reuniões" },
+    { key: "fotos", href: `/somas/${somaId}/fotos`, label: "Fotos" },
     { key: "membros", href: `/somas/${somaId}/membros`, label: "Membros" },
+    { key: "chat", href: `/somas/${somaId}/chat`, label: "Chat" },
     ...(isLeader
       ? [
+          { key: "participacao", href: `/somas/${somaId}/participacao`, label: "Participação" },
           { key: "solicitacoes", href: `/somas/${somaId}/solicitacoes`, label: "Solicitações" },
           { key: "configuracoes", href: `/somas/${somaId}/configuracoes`, label: "Configurações" },
         ]

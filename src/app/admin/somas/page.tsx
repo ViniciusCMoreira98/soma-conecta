@@ -44,7 +44,9 @@ export default async function AdminSomasPage({ searchParams }: { searchParams: P
           <tbody className="divide-y divide-stone-100">
             {somas?.map((s) => (
               <tr key={s.id}>
-                <td className="px-4 py-3 font-semibold">{s.name}</td>
+                <td className="px-4 py-3 font-semibold">
+                  {s.status === "PENDING" ? s.name : <Link href={`/admin/somas/${s.id}`} className="text-soma-800 underline">{s.name}</Link>}
+                </td>
                 <td className="px-4 py-3">{(s.leader as unknown as { full_name: string })?.full_name}</td>
                 <td className="px-4 py-3">{s.neighborhood}</td>
                 <td className="px-4 py-3">{formatDate(s.created_at)}</td>

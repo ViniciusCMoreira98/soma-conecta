@@ -76,3 +76,21 @@ export function ConfirmForm({
     </form>
   );
 }
+
+/** Foto de perfil com a inicial do nome como alternativa. */
+export function Avatar({ name, url, size = 40 }: { name?: string | null; url?: string | null; size?: number }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-soma-100 font-bold text-soma-800"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      aria-hidden
+    >
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        (name ?? "?").trim().charAt(0).toUpperCase() || "?"
+      )}
+    </span>
+  );
+}

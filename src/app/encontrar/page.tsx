@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Clock, MapPin, Search, UserRound } from "lucide-react";
 import AppShell from "@/components/AppShell";
-import { EmptyState, StatusBadge } from "@/components/ui";
+import { Alert, ConfirmForm, EmptyState, StatusBadge } from "@/components/ui";
+import { requestJoin } from "@/app/actions/somas";
 import { requireCompleteProfile } from "@/lib/auth";
 import { WEEKDAY_LABEL, formatTime } from "@/lib/labels";
 import { WEEKDAYS } from "@/lib/validation/schemas";
@@ -9,13 +10,13 @@ import { WEEKDAYS } from "@/lib/validation/schemas";
 export const metadata = { title: "Encontrar um SOMA" };
 const PAGE_SIZE = 12;
 
-type SP = { q?: string; bairro?: string; dia?: string; periodo?: string; vagas?: string; pagina?: string };
+type SP = { q?: string; bairro?: string; dia?: string; periodo?: string; vagas?: string; pagina?: string; erro?: string; solicitado?: string };
 
 // Escapa caracteres especiais do filtro ilike/or do PostgREST.
 const clean = (s: string) => s.replace(/[%,()*\\]/g, " ").trim().slice(0, 80);
 
 export default async function EncontrarPage({ searchParams }: { searchParams: Promise<SP> }) {
-  const { supabase, profile } = await requireCompleteProfile();
+  const { supabase, profile, user } = await requireCompleteProfile();
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.pagina) || 1);
 
@@ -35,11 +36,23 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
   const from = (page - 1) * PAGE_SIZE;
   const { data: somas, count, error } = await query.range(from, from + PAGE_SIZE - 1);
   const total = count ?? 0;
+
+  // Situação do usuário em cada SOMA da página (para o botão "Solicitar entrada" no cartão).
+  const ids = (somas ?? []).map((s) => s.id);
+  const [{ data: mine }, { data: pendingReqs }] = ids.length
+    ? await Promise.all([
+        supabase.from("soma_members").select("soma_id").eq("user_id", user.id).eq("status", "ACTIVE").in("soma_id", ids),
+        supabase.from("soma_join_requests").select("soma_id").eq("user_id", user.id).eq("status", "PENDING").in("soma_id", ids),
+      ])
+    : [{ data: [] as { soma_id: string }[] }, { data: [] as { soma_id: string }[] }];
+  const memberOf = new Set((mine ?? []).map((m) => m.soma_id));
+  const pendingIn = new Set((pendingReqs ?? []).map((r) => r.soma_id));
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const FILTERS = ["q", "bairro", "dia", "periodo", "vagas"] as const;
   const qs = (p: number) => {
     const u = new URLSearchParams();
-    Object.entries(sp).forEach(([k, v]) => v && k !== "pagina" && u.set(k, v));
+    FILTERS.forEach((k) => sp[k] && u.set(k, sp[k]!));
     u.set("pagina", String(p));
     return `/encontrar?${u}`;
   };
@@ -85,7 +98,9 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
         </div>
       </form>
 
-      <div className="mt-6" aria-live="polite">
+      <div className="mt-6 space-y-4" aria-live="polite">
+        {sp.erro && <Alert tone="error">{sp.erro}</Alert>}
+        {sp.solicitado && <Alert tone="success">Solicitação enviada! O responsável vai analisar e você será avisado.</Alert>}
         {error ? (
           <EmptyState title="Não foi possível carregar os SOMAS">Tente novamente em instantes.</EmptyState>
         ) : !somas?.length ? (
@@ -98,7 +113,11 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
             <p className="mb-3 text-sm text-stone-600">{total} {total === 1 ? "SOMA encontrado" : "SOMAS encontrados"}</p>
             <ul className="grid gap-4 sm:grid-cols-2">
               {somas.map((s) => (
-                <li key={s.id} className="card flex flex-col">
+                <li key={s.id} className="card flex flex-col overflow-hidden">
+                  {s.cover_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.cover_url} alt="" loading="lazy" className="-mx-5 -mt-5 mb-4 aspect-[16/7] w-[calc(100%+2.5rem)] max-w-none object-cover" />
+                  )}
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="text-lg font-bold text-soma-900">{s.name}</h2>
                     {s.accepting_members && <StatusBadge text="Aceita membros" tone="green" />}
@@ -109,8 +128,22 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
                     <li className="flex items-center gap-2"><UserRound className="h-4 w-4" aria-hidden /> {s.leader_name}</li>
                   </ul>
                   <p className="mt-3 line-clamp-3 text-sm text-stone-700">{s.description}</p>
-                  <div className="mt-4 flex gap-3">
-                    <Link href={`/somas/${s.id}`} className="btn-primary flex-1">Ver detalhes</Link>
+                  <div className="mt-auto flex flex-wrap gap-3 pt-4">
+                    <Link href={`/somas/${s.id}`} className="btn-secondary flex-1">Ver detalhes</Link>
+                    {memberOf.has(s.id) ? (
+                      <span className="flex flex-1 items-center justify-center"><StatusBadge text="Você participa" tone="green" /></span>
+                    ) : pendingIn.has(s.id) ? (
+                      <span className="flex flex-1 items-center justify-center"><StatusBadge text="Solicitação enviada" tone="amber" /></span>
+                    ) : s.accepting_members ? (
+                      <div className="flex-1">
+                        <ConfirmForm action={requestJoin}
+                          message={`Solicitar entrada em "${s.name}"? O responsável verá seu nome, idade e celular para decidir.`}>
+                          <input type="hidden" name="soma_id" value={s.id} />
+                          <input type="hidden" name="back" value={qs(page)} />
+                          <button className="btn-primary w-full">Solicitar entrada</button>
+                        </ConfirmForm>
+                      </div>
+                    ) : null}
                   </div>
                 </li>
               ))}

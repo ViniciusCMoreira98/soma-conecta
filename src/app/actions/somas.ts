@@ -3,16 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { dbMessage, safePath, withParams } from "@/lib/db-errors";
 import { rejectionSchema, somaSchema, zodErrors, type ActionState } from "@/lib/validation/schemas";
-
-/** Traduz erros levantados pelas funções do banco (mensagens já em pt-BR). */
-function dbMessage(error: { message: string } | null, fallback: string) {
-  if (!error) return fallback;
-  // Mensagens das RPCs começam sem código técnico; erros do Postgres/PostgREST são genéricos.
-  return /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(error.message) && !error.message.includes("violates") && !error.message.includes("function")
-    ? error.message
-    : fallback;
-}
 
 export async function requestSomaRegistration(_: ActionState, form: FormData): Promise<ActionState> {
   const parsed = somaSchema.safeParse(Object.fromEntries(form));
@@ -69,11 +61,14 @@ export async function toggleSuspend(form: FormData) {
 
 export async function requestJoin(form: FormData) {
   const somaId = String(form.get("soma_id"));
+  // Pedido feito direto do cartão da busca volta para a mesma busca (com os filtros).
+  const back = safePath(form.get("back"), `/somas/${somaId}`, "/encontrar");
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_join_soma", { p_soma: somaId });
   revalidatePath("/encontrar");
-  if (error) redirect(`/somas/${somaId}?erro=${encodeURIComponent(dbMessage(error, "Não foi possível enviar a solicitação."))}`);
-  redirect(`/somas/${somaId}?solicitado=1`);
+  revalidatePath("/meus-somas");
+  if (error) redirect(withParams(back, { erro: dbMessage(error, "Não foi possível enviar a solicitação.") }));
+  redirect(withParams(back, { solicitado: "1" }));
 }
 
 export async function cancelJoin(form: FormData) {

@@ -1,32 +1,110 @@
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { ProfileForm } from "@/components/AuthForms";
+import { AvatarUploader } from "@/components/ImageUpload";
+import DataRequestForm from "@/components/DataRequestForm";
+import { Avatar, ConfirmForm, StatusBadge } from "@/components/ui";
+import { removeAvatar } from "@/app/actions/media";
+import { setChatMuted } from "@/app/actions/community";
 import { requireCompleteProfile } from "@/lib/auth";
+import { DATA_REQUEST_KIND_LABEL, DATA_REQUEST_STATUS_LABEL, formatDate } from "@/lib/labels";
 
 export const metadata = { title: "Meu perfil" };
 
 export default async function PerfilPage() {
-  const { profile } = await requireCompleteProfile();
+  const { supabase, profile, user } = await requireCompleteProfile();
+
+  const [{ data: memberships }, { data: requests }] = await Promise.all([
+    supabase.from("soma_members").select("soma_id, chat_muted, soma:somas(name)").eq("user_id", user.id).eq("status", "ACTIVE"),
+    supabase.from("data_requests").select("id, kind, details, status, response, created_at, handled_at")
+      .eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+  ]);
+
   return (
     <AppShell profile={profile}>
       <h1 className="text-2xl font-extrabold text-soma-900">Meu perfil</h1>
       <p className="mt-1 text-sm text-stone-600">{profile.email}</p>
-      <div className="card mt-5 max-w-lg">
-        <ProfileForm
-          defaults={{
-            full_name: profile.full_name ?? "",
-            age: profile.age?.toString() ?? "",
-            phone: profile.phone ?? "",
-            has_bases: profile.has_bases ? "SIM" : "NAO",
-          }}
-        />
+
+      <div className="mt-5 grid max-w-3xl gap-5">
+        <section className="card space-y-4">
+          <h2 className="font-bold text-stone-900">Foto de perfil</h2>
+          <div className="flex items-center gap-4">
+            <Avatar name={profile.full_name} url={profile.avatar_url} size={72} />
+            <div className="text-sm text-stone-600">
+              <p>Aparece para os membros dos seus SOMAS (chat e lista de membros).</p>
+              {profile.avatar_url && (
+                <ConfirmForm action={removeAvatar} message="Remover sua foto de perfil?">
+                  <button className="mt-1 font-semibold text-red-700 underline">Remover foto</button>
+                </ConfirmForm>
+              )}
+            </div>
+          </div>
+          <AvatarUploader />
+        </section>
+
+        <section className="card">
+          <h2 className="mb-4 font-bold text-stone-900">Dados pessoais</h2>
+          <ProfileForm
+            defaults={{
+              full_name: profile.full_name ?? "",
+              age: profile.age?.toString() ?? "",
+              phone: profile.phone ?? "",
+              has_bases: profile.has_bases ? "SIM" : "NAO",
+            }}
+          />
+        </section>
+
+        <section className="card">
+          <h2 className="font-bold text-stone-900">Notificações do chat</h2>
+          <p className="mt-1 text-sm text-stone-600">Silencie um SOMA para não receber avisos de novas mensagens. Avisos de reuniões continuam chegando.</p>
+          {memberships?.length ? (
+            <ul className="mt-3 divide-y divide-stone-100">
+              {memberships.map((m) => (
+                <li key={m.soma_id} className="flex min-h-[52px] items-center justify-between gap-3">
+                  <Link href={`/somas/${m.soma_id}/chat`} className="font-medium text-stone-800 hover:underline">
+                    {(m.soma as unknown as { name: string })?.name}
+                  </Link>
+                  <form action={setChatMuted} className="flex items-center gap-3">
+                    <input type="hidden" name="soma_id" value={m.soma_id} />
+                    <input type="hidden" name="muted" value={m.chat_muted ? "0" : "1"} />
+                    <input type="hidden" name="back" value="/perfil" />
+                    <span className="text-xs text-stone-500">{m.chat_muted ? "Silenciado" : "Avisos ativos"}</span>
+                    <button className="btn-secondary min-h-[40px] px-3 text-xs">{m.chat_muted ? "Ativar" : "Silenciar"}</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-stone-500">Você ainda não participa de nenhum SOMA.</p>
+          )}
+        </section>
+
+        <section className="card space-y-4">
+          <div>
+            <h2 className="font-bold text-stone-900">Seus dados (LGPD)</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              Nome, idade, celular, bases e foto você corrige aqui mesmo, a qualquer momento. Para corrigir outro dado ou pedir a
+              exclusão da conta, envie um pedido à administração. Veja a <Link href="/privacidade" className="underline">política de privacidade</Link>.
+            </p>
+          </div>
+          {!!requests?.length && (
+            <ul className="space-y-2">
+              {requests.map((r) => (
+                <li key={r.id} className="rounded-xl border border-stone-200 p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold">{DATA_REQUEST_KIND_LABEL[r.kind]}</span>
+                    <StatusBadge {...DATA_REQUEST_STATUS_LABEL[r.status]} />
+                  </div>
+                  <p className="mt-1 text-stone-600">{r.details}</p>
+                  <p className="mt-1 text-xs text-stone-500">Enviado em {formatDate(r.created_at)}</p>
+                  {r.response && <p className="mt-2 rounded-lg bg-soma-50 p-2 text-stone-700"><strong>Resposta: </strong>{r.response}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <DataRequestForm />
+        </section>
       </div>
-      <section className="card mt-5 max-w-lg text-sm text-stone-600">
-        <h2 className="font-semibold text-stone-800">Seus dados (LGPD)</h2>
-        <p className="mt-1">
-          Você pode corrigir seus dados acima a qualquer momento. Para solicitar a exclusão da conta e dos dados
-          pessoais, fale com a liderança da igreja ou com o administrador da plataforma.
-        </p>
-      </section>
     </AppShell>
   );
 }
