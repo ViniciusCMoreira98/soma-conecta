@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { createMeeting, updateMeeting, uploadPhotos } from "@/app/actions/meetings";
+import { createMeeting, savePhotos, updateMeeting } from "@/app/actions/meetings";
+import { checkImage, removeImages, uploadImage } from "@/lib/storage-upload";
+
+const MAX_PHOTOS = 10;
 import { Alert, Field, SubmitButton, useFormAction } from "@/components/ui";
 import type { ActionState } from "@/lib/validation/schemas";
 
@@ -48,7 +51,28 @@ export function MeetingForm({
 }
 
 export function PhotoUploader({ somaId, meetingId }: { somaId: string; meetingId: string }) {
-  const [state, action] = useActionState(uploadPhotos, initial);
+  // Valida e envia as fotos direto ao Storage pelo navegador; o servidor só registra os caminhos.
+  const [state, action] = useActionState(async (_: ActionState, form: FormData): Promise<ActionState> => {
+    const files = form.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+    if (!files.length) return { message: "Selecione ao menos uma foto." };
+    if (files.length > MAX_PHOTOS) return { message: `Envie no máximo ${MAX_PHOTOS} fotos por vez.` };
+    for (const f of files) {
+      const err = checkImage(f, 5);
+      if (err) return { message: err };
+    }
+    if (form.get("consent") !== "on") return { message: "Confirme que as pessoas nas fotos estão de acordo com a publicação." };
+
+    const folder = `${somaId}/${meetingId}`;
+    const results = await Promise.all(files.map((f) => uploadImage("meeting-photos", folder, f)));
+    const paths = results.filter((p): p is string => !!p);
+    const failed = files.filter((_, i) => !results[i]).map((f) => f.name);
+    if (!paths.length) return { message: "Não foi possível enviar as fotos. Verifique sua conexão e tente novamente." };
+
+    const res = await savePhotos(somaId, meetingId, paths);
+    if (!res.ok) { await removeImages("meeting-photos", paths); return res; }
+    if (failed.length) return { ok: true, message: `${paths.length} foto(s) enviada(s). Falhou: ${failed.join(", ")}. Tente enviar essas novamente.` };
+    return res;
+  }, initial);
   return (
     <form action={action} className="card space-y-4">
       <input type="hidden" name="soma_id" value={somaId} />

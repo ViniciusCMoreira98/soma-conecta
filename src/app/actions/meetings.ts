@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { zodErrors, type ActionState } from "@/lib/validation/schemas";
 import { todayLocal } from "@/lib/labels";
+import { isUploadedImagePath } from "@/lib/upload-path";
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.").optional().or(z.literal(""));
 
@@ -92,24 +93,15 @@ export async function deleteMeeting(form: FormData) {
   redirect(`/somas/${somaId}/reunioes?ok=1`);
 }
 
-const MAX_BYTES = 5 * 1024 * 1024;
-const MAX_FILES = 10;
-const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const MAX_PHOTOS = 10;
 
-export async function uploadPhotos(_: ActionState, form: FormData): Promise<ActionState> {
-  const somaId = String(form.get("soma_id"));
-  const meetingId = String(form.get("meeting_id"));
-  const files = form.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
-
-  if (!files.length) return { message: "Selecione ao menos uma foto." };
-  if (files.length > MAX_FILES) return { message: `Envie no máximo ${MAX_FILES} fotos por vez.` };
-  for (const f of files) {
-    if (!TYPES[f.type]) return { message: `"${f.name}" não é uma imagem JPG, PNG ou WebP.` };
-    if (f.size > MAX_BYTES) return { message: `"${f.name}" passa de 5 MB.` };
-  }
-  if (form.get("consent") !== "on") {
-    return { message: "Confirme que as pessoas nas fotos estão de acordo com a publicação." };
-  }
+/**
+ * Registra as fotos de um encontro já enviadas pelo navegador ao Storage em meeting-photos/{soma}/{encontro}/...
+ * (o envio direto evita o limite de tamanho de requisição da hospedagem). Só o responsável, garantido por RLS.
+ */
+export async function savePhotos(somaId: string, meetingId: string, paths: string[]): Promise<ActionState> {
+  if (!paths.length || paths.length > MAX_PHOTOS) return { message: `Envie de 1 a ${MAX_PHOTOS} fotos por vez.` };
+  if (!paths.every((p) => isUploadedImagePath(p, `${somaId}/${meetingId}`))) return { message: "Arquivo inválido." };
 
   const supabase = await createClient();
   const {
@@ -121,28 +113,13 @@ export async function uploadPhotos(_: ActionState, form: FormData): Promise<Acti
   if (!meeting) return { message: "Encontro não encontrado." };
   if (meeting.meeting_date > todayLocal()) return { message: "As fotos podem ser enviadas a partir do dia do encontro." };
 
-  let sent = 0;
-  const failed: string[] = [];
-  for (const f of files) {
-    const path = `${somaId}/${meetingId}/${crypto.randomUUID()}.${TYPES[f.type]}`;
-    const up = await supabase.storage.from("meeting-photos").upload(path, f, { contentType: f.type, upsert: false });
-    if (up.error) { failed.push(f.name); continue; }
-    const ins = await supabase.from("meeting_photos").insert({
-      meeting_id: meetingId, soma_id: somaId, storage_path: path, uploaded_by: user.id,
-    });
-    if (ins.error) {
-      await supabase.storage.from("meeting-photos").remove([path]);
-      failed.push(f.name);
-      continue;
-    }
-    sent++;
-  }
+  const { error } = await supabase.from("meeting_photos").insert(
+    paths.map((path) => ({ meeting_id: meetingId, soma_id: somaId, storage_path: path, uploaded_by: user.id })),
+  );
+  if (error) return { message: "Não foi possível registrar as fotos. Verifique se você é o responsável deste SOMA." };
 
   revalidatePath(`/somas/${somaId}`, "layout");
-  if (failed.length) {
-    return { ok: sent > 0, message: `${sent} foto(s) enviada(s). Falhou: ${failed.join(", ")}. Tente enviar essas novamente.` };
-  }
-  return { ok: true, message: `${sent} foto(s) enviada(s) com sucesso.` };
+  return { ok: true, message: `${paths.length} foto(s) enviada(s) com sucesso.` };
 }
 
 export async function deletePhoto(form: FormData) {

@@ -7,9 +7,15 @@ import {
   profileSchema, signInSchema, signUpSchema, zodErrors, type ActionState,
 } from "@/lib/validation/schemas";
 
+/**
+ * URL de retorno dos fluxos de autenticação. Usa o endereço pelo qual o usuário acessou
+ * (funciona em localhost, na Vercel e nas prévias de deploy); NEXT_PUBLIC_SITE_URL só como alternativa.
+ */
 async function siteUrl() {
   const h = await headers();
-  return process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (host) return `${h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")}://${host}`;
+  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
 /** Aceita apenas caminhos internos para evitar redirecionamento aberto. */

@@ -35,7 +35,7 @@ export default async function PerfilPage() {
               )}
             </div>
           </div>
-          <AvatarUploader />
+          <AvatarUploader userId={profile.id} />
         </section>
 
         <section className="card">
