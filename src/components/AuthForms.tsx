@@ -1,15 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import {
   requestPasswordReset, saveProfile, signInWithGoogle, signInWithPassword,
   signUpWithPassword, updatePassword,
 } from "@/app/actions/auth";
-import { Alert, Field, SubmitButton } from "@/components/ui";
-import type { ActionState } from "@/lib/validation/schemas";
+import { Alert, Field, SubmitButton, useFormAction } from "@/components/ui";
 
-const initial: ActionState = {};
 
 export function GoogleButton({ next }: { next?: string }) {
   return (
@@ -29,13 +26,13 @@ export function GoogleButton({ next }: { next?: string }) {
 }
 
 export function SignInForm({ next }: { next?: string }) {
-  const [state, action] = useActionState(signInWithPassword, initial);
+  const [state, action] = useFormAction(signInWithPassword);
   return (
     <form action={action} className="space-y-4" noValidate>
       <input type="hidden" name="next" value={next ?? ""} />
       {state.message && <Alert tone="error">{state.message}</Alert>}
       <Field label="E-mail" name="email" error={state.errors?.email}>
-        <input id="email" name="email" type="email" autoComplete="email" inputMode="email" required className="input" />
+        <input id="email" name="email" type="email" autoComplete="email" inputMode="email" defaultValue={state.values?.email} required className="input" />
       </Field>
       <Field label="Senha" name="password" error={state.errors?.password}>
         <input id="password" name="password" type="password" autoComplete="current-password" required className="input" />
@@ -49,13 +46,13 @@ export function SignInForm({ next }: { next?: string }) {
 }
 
 export function SignUpForm() {
-  const [state, action] = useActionState(signUpWithPassword, initial);
+  const [state, action] = useFormAction(signUpWithPassword);
   if (state.ok) return <Alert tone="success">{state.message}</Alert>;
   return (
     <form action={action} className="space-y-4" noValidate>
       {state.message && <Alert tone="error">{state.message}</Alert>}
       <Field label="E-mail" name="email" error={state.errors?.email}>
-        <input id="email" name="email" type="email" autoComplete="email" inputMode="email" required className="input" />
+        <input id="email" name="email" type="email" autoComplete="email" inputMode="email" defaultValue={state.values?.email} required className="input" />
       </Field>
       <Field label="Senha" name="password" error={state.errors?.password} hint="Mínimo de 8 caracteres, com letras e números.">
         <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} className="input" />
@@ -70,12 +67,12 @@ export function SignUpForm() {
 }
 
 export function ForgotPasswordForm() {
-  const [state, action] = useActionState(requestPasswordReset, initial);
+  const [state, action] = useFormAction(requestPasswordReset);
   if (state.ok) return <Alert tone="success">{state.message}</Alert>;
   return (
     <form action={action} className="space-y-4" noValidate>
       <Field label="E-mail da sua conta" name="email" error={state.errors?.email}>
-        <input id="email" name="email" type="email" autoComplete="email" required className="input" />
+        <input id="email" name="email" type="email" autoComplete="email" defaultValue={state.values?.email} required className="input" />
       </Field>
       <SubmitButton pendingText="Enviando…" className="w-full">Enviar link de redefinição</SubmitButton>
     </form>
@@ -83,7 +80,7 @@ export function ForgotPasswordForm() {
 }
 
 export function NewPasswordForm() {
-  const [state, action] = useActionState(updatePassword, initial);
+  const [state, action] = useFormAction(updatePassword);
   return (
     <form action={action} className="space-y-4" noValidate>
       {state.message && <Alert tone="error">{state.message}</Alert>}
@@ -102,7 +99,8 @@ export function ProfileForm({
   onboarding?: boolean;
   next?: string;
 }) {
-  const [state, action] = useActionState(saveProfile, initial);
+  const [state, action] = useFormAction(saveProfile);
+  const v = state.values;
   const e = state.errors ?? {};
   return (
     <form action={action} className="space-y-5" noValidate>
@@ -111,14 +109,14 @@ export function ProfileForm({
       {state.message && <Alert tone={state.ok ? "success" : "error"}>{state.message}</Alert>}
 
       <Field label="Nome completo" name="full_name" error={e.full_name} hint="Usado para identificar você no seu SOMA.">
-        <input id="full_name" name="full_name" defaultValue={defaults.full_name} autoComplete="name" required className="input" />
+        <input id="full_name" name="full_name" defaultValue={v?.full_name ?? defaults.full_name} autoComplete="name" required className="input" />
       </Field>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Idade (em anos)" name="age" error={e.age} hint="Ajuda o responsável a conhecer o perfil do grupo.">
-          <input id="age" name="age" type="number" inputMode="numeric" min={5} max={120} defaultValue={defaults.age} required className="input" />
+          <input id="age" name="age" type="number" inputMode="numeric" min={5} max={120} defaultValue={v?.age ?? defaults.age} required className="input" />
         </Field>
         <Field label="Celular com DDD" name="phone" error={e.phone} hint="Visível apenas ao responsável do SOMA em que você entrar.">
-          <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="(67) 99999-9999" defaultValue={defaults.phone} required className="input" />
+          <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="(67) 99999-9999" defaultValue={v?.phone ?? defaults.phone} required className="input" />
         </Field>
       </div>
 
@@ -130,7 +128,7 @@ export function ProfileForm({
             { v: "NAO", t: "Não" },
           ].map((o) => (
             <label key={o.v} className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-sm font-semibold has-[:checked]:border-soma-600 has-[:checked]:bg-soma-50 has-[:checked]:text-soma-800">
-              <input type="radio" name="has_bases" value={o.v} defaultChecked={defaults.has_bases === o.v} className="sr-only" required />
+              <input type="radio" name="has_bases" value={o.v} defaultChecked={(v?.has_bases ?? defaults.has_bases) === o.v} className="sr-only" required />
               {o.t}
             </label>
           ))}

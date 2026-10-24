@@ -1,10 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { requestSomaRegistration, updateSomaSettings } from "@/app/actions/somas";
-import { Alert, Field, SubmitButton } from "@/components/ui";
+import { Alert, Field, SubmitButton, useFormAction } from "@/components/ui";
 import { FREQUENCY_LABEL, WEEKDAY_LABEL } from "@/lib/labels";
-import type { ActionState } from "@/lib/validation/schemas";
 
 type Defaults = {
   name?: string; description?: string; neighborhood?: string; location_hint?: string | null;
@@ -12,12 +10,12 @@ type Defaults = {
   extra_info?: string | null; accepting_members?: boolean;
 };
 
-const initial: ActionState = {};
 
 export default function SomaForm({
   mode, leaderName, somaId, defaults = {},
 }: { mode: "create" | "edit"; leaderName: string; somaId?: string; defaults?: Defaults }) {
-  const [state, action] = useActionState(mode === "create" ? requestSomaRegistration : updateSomaSettings, initial);
+  const [state, action] = useFormAction(mode === "create" ? requestSomaRegistration : updateSomaSettings);
+  const v = state.values;
   const e = state.errors ?? {};
 
   return (
@@ -35,10 +33,10 @@ export default function SomaForm({
       <section className="card space-y-5">
         <h2 className="text-lg font-bold text-soma-900">Sobre o SOMA</h2>
         <Field label="Nome do SOMA" name="name" error={e.name}>
-          <input id="name" name="name" defaultValue={defaults.name} required maxLength={80} className="input" />
+          <input id="name" name="name" defaultValue={v?.name ?? defaults.name} required maxLength={80} className="input" />
         </Field>
         <Field label="Apresentação do grupo" name="description" error={e.description} hint="Conte o que o grupo faz e quem é bem-vindo.">
-          <textarea id="description" name="description" defaultValue={defaults.description} rows={4} required maxLength={1000} className="input py-2" />
+          <textarea id="description" name="description" defaultValue={v?.description ?? defaults.description} rows={4} required maxLength={1000} className="input py-2" />
         </Field>
         <div>
           <span className="label">Responsável</span>
@@ -49,29 +47,29 @@ export default function SomaForm({
       <section className="card space-y-5">
         <h2 className="text-lg font-bold text-soma-900">Onde e quando</h2>
         <Field label="Bairro" name="neighborhood" error={e.neighborhood}>
-          <input id="neighborhood" name="neighborhood" defaultValue={defaults.neighborhood} required className="input" />
+          <input id="neighborhood" name="neighborhood" defaultValue={v?.neighborhood ?? defaults.neighborhood} required className="input" />
         </Field>
         <Field label="Localização aproximada (opcional)" name="location_hint" error={e.location_hint}
           hint="Ex.: perto da praça central. Evite o endereço completo: ele só deve ser combinado com quem entrar.">
-          <input id="location_hint" name="location_hint" defaultValue={defaults.location_hint ?? ""} maxLength={200} className="input" />
+          <input id="location_hint" name="location_hint" defaultValue={v?.location_hint ?? defaults.location_hint ?? ""} maxLength={200} className="input" />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Dia da semana" name="weekday" error={e.weekday}>
-            <select id="weekday" name="weekday" defaultValue={defaults.weekday ?? ""} required className="input">
+            <select id="weekday" name="weekday" defaultValue={v?.weekday ?? defaults.weekday ?? ""} required className="input">
               <option value="" disabled>Selecione…</option>
               {Object.entries(WEEKDAY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </Field>
           <Field label="Frequência" name="frequency" error={e.frequency}>
-            <select id="frequency" name="frequency" defaultValue={defaults.frequency ?? "SEMANAL"} className="input">
+            <select id="frequency" name="frequency" defaultValue={v?.frequency ?? defaults.frequency ?? "SEMANAL"} className="input">
               {Object.entries(FREQUENCY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </Field>
           <Field label="Horário de início" name="start_time" error={e.start_time}>
-            <input id="start_time" name="start_time" type="time" defaultValue={defaults.start_time?.slice(0, 5)} required className="input" />
+            <input id="start_time" name="start_time" type="time" defaultValue={v?.start_time ?? defaults.start_time?.slice(0, 5)} required className="input" />
           </Field>
           <Field label="Término previsto (opcional)" name="end_time" error={e.end_time}>
-            <input id="end_time" name="end_time" type="time" defaultValue={defaults.end_time?.slice(0, 5) ?? ""} className="input" />
+            <input id="end_time" name="end_time" type="time" defaultValue={v?.end_time ?? defaults.end_time?.slice(0, 5) ?? ""} className="input" />
           </Field>
         </div>
       </section>
@@ -79,11 +77,11 @@ export default function SomaForm({
       <section className="card space-y-5">
         <h2 className="text-lg font-bold text-soma-900">Informações adicionais</h2>
         <Field label="Outras informações (opcional)" name="extra_info" error={e.extra_info}>
-          <textarea id="extra_info" name="extra_info" defaultValue={defaults.extra_info ?? ""} rows={3} maxLength={1000} className="input py-2" />
+          <textarea id="extra_info" name="extra_info" defaultValue={v?.extra_info ?? defaults.extra_info ?? ""} rows={3} maxLength={1000} className="input py-2" />
         </Field>
         {mode === "edit" && (
           <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
-            <input type="checkbox" name="accepting_members" defaultChecked={defaults.accepting_members} className="h-5 w-5 accent-soma-600" />
+            <input type="checkbox" name="accepting_members" defaultChecked={v ? v.accepting_members === "on" : defaults.accepting_members} className="h-5 w-5 accent-soma-600" />
             Aceitando novos membros
           </label>
         )}

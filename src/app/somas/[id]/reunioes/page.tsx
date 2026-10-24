@@ -41,7 +41,7 @@ export default async function ReunioesPage({
             </p>
             {future && <StatusBadge text={m.meeting_date === today ? "Hoje" : "Agendada"} tone="amber" />}
           </div>
-          <p className="mt-1 font-bold text-stone-900">{m.title || "Reunião do SOMA"}</p>
+          <p className="mt-1 font-bold text-stone-900">{m.title || "Encontro do SOMA"}</p>
           {m.description && <p className="mt-1 line-clamp-2 text-sm text-stone-600">{m.description}</p>}
           {!future && (
             <p className="mt-2 text-xs text-stone-500">
@@ -60,25 +60,25 @@ export default async function ReunioesPage({
       <SomaTabs somaId={id} active="reunioes" isLeader={isLeader} />
       <div className="mt-5 space-y-4">
         {sp.erro && <Alert tone="error">{sp.erro}</Alert>}
-        {sp.ok && <Alert tone="success">Reunião excluída.</Alert>}
+        {sp.ok && <Alert tone="success">Encontro excluído.</Alert>}
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-bold">Próximas reuniões</h2>
-          {isLeader && <Link href={`/somas/${id}/reunioes/nova`} className="btn-primary">Nova reunião</Link>}
+          <h2 className="font-bold">Próximos encontros</h2>
+          {isLeader && <Link href={`/somas/${id}/reunioes/nova`} className="btn-primary">Novo encontro</Link>}
         </div>
         {!upcoming?.length ? (
           <p className="card text-sm text-stone-600">
-            {isLeader ? "Nenhuma reunião agendada. Use “Nova reunião” com uma data futura para avisar o grupo." : "Nenhuma reunião agendada no momento."}
+            {isLeader ? "Nenhum encontro agendado. Use “Novo encontro” com uma data futura para avisar o grupo." : "Nenhum encontro agendado no momento."}
           </p>
         ) : (
           <ul className="space-y-3">{(upcoming as Row[]).map((m) => card(m, true))}</ul>
         )}
 
         <h2 className="pt-2 font-bold">
-          Reuniões realizadas <span className="text-sm font-normal text-stone-500">({count ?? 0})</span>
+          Encontros realizados <span className="text-sm font-normal text-stone-500">({count ?? 0})</span>
         </h2>
         {!past?.length ? (
-          <EmptyState title="Nenhuma reunião realizada ainda">
-            {isLeader ? "Registre as reuniões do seu SOMA para montar o histórico." : "O responsável ainda não registrou reuniões."}
+          <EmptyState title="Nenhum encontro realizado ainda">
+            {isLeader ? "Registre os encontros do seu SOMA para montar o histórico." : "O responsável ainda não registrou encontros."}
           </EmptyState>
         ) : (
           <ul className="space-y-3">{(past as Row[]).map((m) => card(m, false))}</ul>

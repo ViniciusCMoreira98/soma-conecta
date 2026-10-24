@@ -15,7 +15,7 @@ export default async function AdminPage() {
     { label: "Usuários", value: s.users, href: "/admin/usuarios" },
     { label: "Contas suspensas", value: s.users_suspended, href: "/admin/usuarios?status=SUSPENDED" },
     { label: "Membros em grupos", value: s.memberships },
-    { label: "Reuniões realizadas", value: s.meetings },
+    { label: "Encontros realizados", value: s.meetings },
   ];
   return (
     <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">

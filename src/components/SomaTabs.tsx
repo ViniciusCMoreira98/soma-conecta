@@ -1,11 +1,24 @@
-import Link from "next/link";
+import { getSessionProfile } from "@/lib/auth";
+import UnreadBadge from "@/components/UnreadBadge";
+import TabLink from "@/components/TabLink";
 
-export default function SomaTabs({ somaId, active, isLeader }: { somaId: string; active: string; isLeader: boolean }) {
+export default async function SomaTabs({ somaId, active, isLeader }: { somaId: string; active: string; isLeader: boolean }) {
+  // Sessão já carregada pela página (memorizada por requisição): sem nova ida ao Supabase Auth.
+  const session = await getSessionProfile();
+  const { data } = session
+    ? await session.supabase.rpc("soma_unread_counts", { p_soma: somaId }).maybeSingle<{ chat_unread: number; avisos_unread: number }>()
+    : { data: null };
+  const user = session?.user;
+  const unread = {
+    chat: { initial: data?.chat_unread ?? 0, table: "messages", authorField: "sender_id" },
+    avisos: { initial: data?.avisos_unread ?? 0, table: "soma_announcements", authorField: "author_id" },
+  } as const;
   const tabs = [
     { key: "geral", href: `/somas/${somaId}`, label: "Visão geral" },
-    { key: "reunioes", href: `/somas/${somaId}/reunioes`, label: "Reuniões" },
+    { key: "reunioes", href: `/somas/${somaId}/reunioes`, label: "Encontros" },
     { key: "fotos", href: `/somas/${somaId}/fotos`, label: "Fotos" },
     { key: "membros", href: `/somas/${somaId}/membros`, label: "Membros" },
+    { key: "avisos", href: `/somas/${somaId}/avisos`, label: "Avisos" },
     { key: "chat", href: `/somas/${somaId}/chat`, label: "Chat" },
     ...(isLeader
       ? [
@@ -20,15 +33,11 @@ export default function SomaTabs({ somaId, active, isLeader }: { somaId: string;
       <ul className="flex min-w-max gap-2 border-b border-stone-200">
         {tabs.map((t) => (
           <li key={t.key}>
-            <Link
-              href={t.href}
-              aria-current={active === t.key ? "page" : undefined}
-              className={`inline-flex min-h-[44px] items-center border-b-2 px-3 text-sm font-semibold ${
-                active === t.key ? "border-soma-600 text-soma-800" : "border-transparent text-stone-600 hover:text-stone-900"
-              }`}
-            >
-              {t.label}
-            </Link>
+            <TabLink href={t.href} active={active === t.key} label={t.label}>
+              {active !== t.key && user && (t.key === "chat" || t.key === "avisos") && (
+                <UnreadBadge somaId={somaId} userId={user.id} {...unread[t.key]} />
+              )}
+            </TabLink>
           </li>
         ))}
       </ul>

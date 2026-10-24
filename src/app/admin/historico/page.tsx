@@ -36,7 +36,7 @@ export default async function AdminHistoricoPage({ searchParams }: { searchParam
       const n = somas?.find((s) => s.id === r.target_id)?.name ?? "SOMA";
       return <Link href={`/admin/somas/${r.target_id}`} className="underline">{n}</Link>;
     }
-    return r.target_type === "message" ? "mensagem do chat" : "foto de reunião";
+    return r.target_type === "message" ? "mensagem do chat" : "foto de encontro";
   };
 
   const filters = [

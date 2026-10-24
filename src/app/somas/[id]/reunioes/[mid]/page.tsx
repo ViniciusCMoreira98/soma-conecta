@@ -53,10 +53,10 @@ export default async function ReuniaoPage({
       <h1 className="text-3xl font-extrabold text-soma-900">{soma.name}</h1>
       <SomaTabs somaId={id} active="reunioes" isLeader={isLeader} />
       <div className="mt-5 max-w-3xl space-y-5">
-        <Link href={`/somas/${id}/reunioes`} className="text-sm font-medium text-soma-700 underline">← Reuniões</Link>
+        <Link href={`/somas/${id}/reunioes`} className="text-sm font-medium text-soma-700 underline">← Encontros</Link>
         {criada && (
           <Alert tone="success">
-            {future ? "Reunião agendada. Os membros foram avisados." : "Reunião registrada. Agora você pode marcar a presença e adicionar fotos."}
+            {future ? "Encontro agendado. Os membros foram avisados." : "Encontro registrado. Agora você pode marcar a presença e adicionar fotos."}
           </Alert>
         )}
 
@@ -66,7 +66,7 @@ export default async function ReuniaoPage({
             {m.start_time ? ` · ${formatTime(m.start_time)}${m.end_time ? `–${formatTime(m.end_time)}` : ""}` : ""}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <h2 className="text-2xl font-bold">{m.title || "Reunião do SOMA"}</h2>
+            <h2 className="text-2xl font-bold">{m.title || "Encontro do SOMA"}</h2>
             {future && <StatusBadge text="Agendada" tone="amber" />}
           </div>
           {m.description && <p className="mt-3 whitespace-pre-line text-stone-800">{m.description}</p>}
@@ -75,7 +75,7 @@ export default async function ReuniaoPage({
 
         {!future && !isLeader && m.attendance_taken_at && (
           <p className="card text-sm text-stone-700">
-            {presentIds.includes(user.id) ? "Sua presença foi registrada nesta reunião." : "Sua presença não foi marcada nesta reunião."}
+            {presentIds.includes(user.id) ? "Sua presença foi registrada neste encontro." : "Sua presença não foi marcada neste encontro."}
           </p>
         )}
 
@@ -88,23 +88,23 @@ export default async function ReuniaoPage({
           {grid.length ? (
             <PhotoGrid photos={grid} somaId={id} canDelete={isLeader} back={`/somas/${id}/reunioes/${mid}`} />
           ) : (
-            <p className="card text-sm text-stone-600">Nenhuma foto nesta reunião.</p>
+            <p className="card text-sm text-stone-600">Nenhuma foto neste encontro.</p>
           )}
         </section>}
 
         {isLeader && (
           <>
             {future
-              ? <p className="card text-sm text-stone-600">Presença e fotos ficam disponíveis a partir do dia da reunião.</p>
+              ? <p className="card text-sm text-stone-600">Presença e fotos ficam disponíveis a partir do dia do encontro.</p>
               : <PhotoUploader somaId={id} meetingId={mid} />}
             <details className="group">
-              <summary className="btn-secondary cursor-pointer list-none">Editar informações da reunião</summary>
+              <summary className="btn-secondary cursor-pointer list-none">Editar informações do encontro</summary>
               <div className="mt-3"><MeetingForm somaId={id} meeting={m} /></div>
             </details>
-            <ConfirmForm action={deleteMeeting} message="Excluir esta reunião e todas as suas fotos? Esta ação não pode ser desfeita.">
+            <ConfirmForm action={deleteMeeting} message="Excluir este encontro e todas as suas fotos? Esta ação não pode ser desfeita.">
               <input type="hidden" name="soma_id" value={id} />
               <input type="hidden" name="meeting_id" value={mid} />
-              <button className="text-sm font-semibold text-red-700 underline">Excluir reunião</button>
+              <button className="text-sm font-semibold text-red-700 underline">Excluir encontro</button>
             </ConfirmForm>
           </>
         )}

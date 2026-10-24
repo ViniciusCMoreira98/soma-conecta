@@ -97,7 +97,7 @@ export default async function MembrosPage({
                   </div>
                   <button className="btn-danger">Transferir e sair</button>
                 </div>
-                <p className="mt-2 text-xs text-stone-500">O novo responsável é avisado e passa a aprovar entradas, registrar reuniões e enviar fotos.</p>
+                <p className="mt-2 text-xs text-stone-500">O novo responsável é avisado e passa a aprovar entradas, registrar encontros e enviar fotos.</p>
               </ConfirmForm>
             ) : (
               <p className="text-sm text-stone-600">

@@ -1,20 +1,18 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useRef } from "react";
 import { Flag } from "lucide-react";
 import { reportContent } from "@/app/actions/community";
-import { Alert, SubmitButton } from "@/components/ui";
+import { Alert, SubmitButton, useFormAction } from "@/components/ui";
 import { REPORT_REASON_LABEL } from "@/lib/labels";
-import type { ActionState } from "@/lib/validation/schemas";
 
-const initial: ActionState = {};
 
 /** Botão "Denunciar" com uma janela para escolher o motivo. Usado no chat e nas fotos. */
 export default function ReportButton({
   targetType, targetId, className = "", label = "Denunciar",
 }: { targetType: "MESSAGE" | "PHOTO"; targetId: string; className?: string; label?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [state, action] = useActionState(reportContent, initial);
+  const [state, action] = useFormAction(reportContent);
   const what = targetType === "MESSAGE" ? "mensagem" : "foto";
 
   return (
@@ -41,13 +39,13 @@ export default function ReportButton({
                 <legend className="label">Qual é o problema?</legend>
                 {Object.entries(REPORT_REASON_LABEL).map(([k, v]) => (
                   <label key={k} className="flex min-h-[40px] items-center gap-3 text-sm">
-                    <input type="radio" name="reason" value={k} required className="h-5 w-5 accent-soma-600" /> {v}
+                    <input type="radio" name="reason" value={k} defaultChecked={state.values?.reason === k} required className="h-5 w-5 accent-soma-600" /> {v}
                   </label>
                 ))}
               </fieldset>
               <div>
                 <label htmlFor={`details-${targetId}`} className="label">Detalhes (opcional)</label>
-                <textarea id={`details-${targetId}`} name="details" rows={3} maxLength={500} className="input py-2" />
+                <textarea id={`details-${targetId}`} name="details" rows={3} maxLength={500} defaultValue={state.values?.details} className="input py-2" />
               </div>
               <p className="text-xs text-stone-500">Só a administração vê a denúncia. Quem publicou não saberá quem denunciou.</p>
               <div className="flex gap-2">

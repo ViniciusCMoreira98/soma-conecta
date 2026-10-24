@@ -29,7 +29,7 @@ export default async function FotosPage({ params }: { params: Promise<{ id: stri
         {!withPhotos.length ? (
           <EmptyState title="Ainda não há fotos">
             {isLeader ? (
-              <>Abra uma reunião em <Link className="font-semibold text-soma-700 underline" href={`/somas/${id}/reunioes`}>Reuniões</Link> para enviar fotos.</>
+              <>Abra um encontro em <Link className="font-semibold text-soma-700 underline" href={`/somas/${id}/reunioes`}>Encontros</Link> para enviar fotos.</>
             ) : "As fotos aparecem aqui quando o responsável publicar."}
           </EmptyState>
         ) : (
@@ -41,7 +41,7 @@ export default async function FotosPage({ params }: { params: Promise<{ id: stri
             return (
               <section key={m.id}>
                 <h2 className="mb-2 font-bold">
-                  <Link href={`/somas/${id}/reunioes/${m.id}`} className="hover:underline">{m.title || "Reunião do SOMA"}</Link>
+                  <Link href={`/somas/${id}/reunioes/${m.id}`} className="hover:underline">{m.title || "Encontro do SOMA"}</Link>
                   <span className="ml-2 text-sm font-normal text-stone-500">{formatDate(m.meeting_date + "T12:00:00")}</span>
                 </h2>
                 <PhotoGrid photos={grid} somaId={id} canDelete={isLeader} back={`/somas/${id}/fotos`} />

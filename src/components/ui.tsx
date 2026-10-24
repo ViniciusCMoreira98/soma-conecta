@@ -1,8 +1,27 @@
 "use client";
 
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
+import type { ActionState } from "@/lib/validation/schemas";
+
+type FormState = ActionState & { values?: Record<string, string> };
+
+/**
+ * useActionState que preserva o que foi digitado quando a ação falha.
+ * O React 19 limpa o formulário após cada envio; usando `values` como defaultValue,
+ * os campos voltam com o conteúdo do usuário. Em caso de sucesso, o formulário é limpo normalmente.
+ */
+export function useFormAction(fn: (prev: ActionState, form: FormData) => Promise<ActionState>) {
+  return useActionState<FormState, FormData>(async (prev, form) => {
+    const result = await fn(prev, form);
+    if (result.ok) return result;
+    const values: Record<string, string> = {};
+    form.forEach((v, k) => { if (typeof v === "string" && !k.startsWith("$ACTION")) values[k] = v; });
+    return { ...result, values };
+  }, {});
+}
 
 export function SubmitButton({
   children, pendingText = "Enviando…", variant = "primary", className = "",
@@ -77,20 +96,22 @@ export function ConfirmForm({
   );
 }
 
-/** Foto de perfil com a inicial do nome como alternativa. */
+/** Imagem usada quando o usuário não enviou foto de perfil. */
+export const DEFAULT_AVATAR = "/avatar-padrao.jpg";
+
+/** Foto de perfil, com a imagem padrão como alternativa. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Avatar({ name, url, size = 40 }: { name?: string | null; url?: string | null; size?: number }) {
   return (
-    <span
-      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-soma-100 font-bold text-soma-800"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
-      aria-hidden
-    >
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
-      ) : (
-        (name ?? "?").trim().charAt(0).toUpperCase() || "?"
-      )}
+    <span className="inline-flex shrink-0 overflow-hidden rounded-full bg-soma-100" style={{ width: size, height: size }} aria-hidden>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover" loading="lazy" onError={avatarFallback} />
     </span>
   );
+}
+
+/** Se a foto não carregar (arquivo removido, link inválido), mostra a imagem padrão. */
+export function avatarFallback(e: React.SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget;
+  if (!img.src.endsWith(DEFAULT_AVATAR)) img.src = DEFAULT_AVATAR;
 }

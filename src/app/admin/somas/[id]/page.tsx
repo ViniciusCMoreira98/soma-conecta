@@ -48,7 +48,7 @@ export default async function AdminSomaPage({
         </div>
         <p>{soma.neighborhood}{soma.location_hint ? ` · ${soma.location_hint}` : ""}</p>
         <p>{WEEKDAY_LABEL[soma.weekday]} às {formatTime(soma.start_time)}{soma.end_time ? `–${formatTime(soma.end_time)}` : ""} · {FREQUENCY_LABEL[soma.frequency]}</p>
-        <p className="text-xs text-stone-500">Criado em {formatDate(soma.created_at)} · {meetings ?? 0} reuniões · {pending ?? 0} solicitações de entrada pendentes</p>
+        <p className="text-xs text-stone-500">Criado em {formatDate(soma.created_at)} · {meetings ?? 0} encontros · {pending ?? 0} solicitações de entrada pendentes</p>
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

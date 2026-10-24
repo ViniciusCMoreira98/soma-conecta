@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ReportButton from "@/components/ReportButton";
+import { DEFAULT_AVATAR, avatarFallback } from "@/components/ui";
 
 export type ChatMessage = { id: string; sender_id: string; content: string; created_at: string };
 export type Sender = { full_name: string | null; avatar_url: string | null };
@@ -12,9 +13,9 @@ const PAGE = 40;
 const fmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Campo_Grande" });
 
 export default function ChatRoom({
-  somaId, userId, initialMessages, initialSenders, hasMoreInitial, lastReadAt,
+  somaId, userId, isLeader, initialMessages, initialSenders, hasMoreInitial, lastReadAt,
 }: {
-  somaId: string; userId: string; initialMessages: ChatMessage[];
+  somaId: string; userId: string; isLeader: boolean; initialMessages: ChatMessage[];
   initialSenders: Record<string, Sender>; hasMoreInitial: boolean; lastReadAt: string | null;
 }) {
   const supabase = useRef(createClient()).current;
@@ -105,6 +106,14 @@ export default function ChatRoom({
     }
   }
 
+  async function remove(id: string) {
+    if (!window.confirm("Excluir esta mensagem para todos?")) return;
+    setError(null);
+    const { error: err, count } = await supabase.from("messages").delete({ count: "exact" }).eq("id", id);
+    if (err || !count) { setError("Não foi possível excluir a mensagem."); return; }
+    setMessages((cur) => cur.filter((m) => m.id !== id));
+  }
+
   return (
     <div className="flex h-[calc(100dvh-15rem)] min-h-[360px] flex-col rounded-xl2 border border-stone-200 bg-white md:h-[calc(100dvh-14rem)]">
       {!online && <p role="status" className="bg-amber-50 px-4 py-2 text-xs text-amber-900">Reconectando ao chat…</p>}
@@ -135,13 +144,21 @@ export default function ChatRoom({
               )}
               <div className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-soma-100 text-xs font-bold text-soma-800" aria-hidden>
-                  {s?.avatar_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={s.avatar_url} alt="" className="h-full w-full object-cover" /> : (s?.full_name ?? "?").charAt(0).toUpperCase()}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s?.avatar_url || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover" onError={avatarFallback} />
+
                 </div>
                 <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${mine ? "bg-soma-600 text-white" : "bg-stone-100 text-stone-900"}`}>
                   {!mine && <p className="text-xs font-semibold text-soma-800">{s?.full_name ?? "Membro"}</p>}
                   <p className="whitespace-pre-wrap break-words text-sm">{m.content}</p>
                   <p className={`mt-0.5 text-[10px] ${mine ? "text-soma-100" : "text-stone-500"}`}>{fmt.format(new Date(m.created_at))}</p>
                 </div>
+                {(mine || isLeader) && (
+                  <button type="button" onClick={() => remove(m.id)} aria-label="Excluir mensagem" title="Excluir mensagem"
+                    className="self-center rounded-full p-2 text-stone-400 hover:bg-stone-100 hover:text-red-700">
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                )}
                 {!mine && (
                   <ReportButton targetType="MESSAGE" targetId={m.id} label=""
                     className="self-center rounded-full p-2 text-stone-400 hover:bg-stone-100 hover:text-red-700" />

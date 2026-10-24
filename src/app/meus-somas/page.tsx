@@ -43,12 +43,14 @@ export default async function MeusSomasPage({ searchParams }: { searchParams: Pr
           {memberships.map((m) => {
             const s = m.soma as unknown as { id: string; name: string; neighborhood: string; weekday: string; start_time: string };
             return (
-              <li key={s.id} className="card">
-                <div className="flex items-start justify-between gap-2">
-                  <Link href={`/somas/${s.id}`} className="font-bold text-soma-800 hover:underline">{s.name}</Link>
-                  {m.role === "LEADER" && <StatusBadge text="Responsável" tone="green" />}
-                </div>
-                <p className="mt-1 text-sm text-stone-600">{s.neighborhood} · {WEEKDAY_LABEL[s.weekday]} às {formatTime(s.start_time)}</p>
+              <li key={s.id}>
+                <Link href={`/somas/${s.id}`} className="card group block h-full hover:border-soma-300">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-bold text-soma-800 group-hover:underline">{s.name}</span>
+                    {m.role === "LEADER" && <StatusBadge text="Responsável" tone="green" />}
+                  </div>
+                  <p className="mt-1 text-sm text-stone-600">{s.neighborhood} · {WEEKDAY_LABEL[s.weekday]} às {formatTime(s.start_time)}</p>
+                </Link>
               </li>
             );
           })}

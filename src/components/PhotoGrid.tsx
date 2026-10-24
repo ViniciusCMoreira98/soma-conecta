@@ -24,7 +24,7 @@ export default function PhotoGrid({
               onClick={() => { setCurrent(p); dialog.current?.showModal(); }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.url} alt={p.caption ?? "Foto da reunião"} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+              <img src={p.url} alt={p.caption ?? "Foto do encontro"} loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </button>
             {!canDelete && (
               <div className="absolute right-1 top-1">
@@ -53,7 +53,7 @@ export default function PhotoGrid({
         {current && (
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={current.url} alt={current.caption ?? "Foto da reunião"} className="max-h-[88vh] max-w-[94vw] rounded-xl object-contain" />
+            <img src={current.url} alt={current.caption ?? "Foto do encontro"} className="max-h-[88vh] max-w-[94vw] rounded-xl object-contain" />
             <button onClick={() => dialog.current?.close()} className="btn-secondary absolute right-2 top-2 min-h-[40px]">Fechar</button>
           </div>
         )}

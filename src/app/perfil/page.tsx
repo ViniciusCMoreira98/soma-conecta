@@ -5,7 +5,6 @@ import { AvatarUploader } from "@/components/ImageUpload";
 import DataRequestForm from "@/components/DataRequestForm";
 import { Avatar, ConfirmForm, StatusBadge } from "@/components/ui";
 import { removeAvatar } from "@/app/actions/media";
-import { setChatMuted } from "@/app/actions/community";
 import { requireCompleteProfile } from "@/lib/auth";
 import { DATA_REQUEST_KIND_LABEL, DATA_REQUEST_STATUS_LABEL, formatDate } from "@/lib/labels";
 
@@ -14,11 +13,8 @@ export const metadata = { title: "Meu perfil" };
 export default async function PerfilPage() {
   const { supabase, profile, user } = await requireCompleteProfile();
 
-  const [{ data: memberships }, { data: requests }] = await Promise.all([
-    supabase.from("soma_members").select("soma_id, chat_muted, soma:somas(name)").eq("user_id", user.id).eq("status", "ACTIVE"),
-    supabase.from("data_requests").select("id, kind, details, status, response, created_at, handled_at")
-      .eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
-  ]);
+  const { data: requests } = await supabase.from("data_requests").select("id, kind, details, status, response, created_at, handled_at")
+    .eq("user_id", user.id).order("created_at", { ascending: false }).limit(10);
 
   return (
     <AppShell profile={profile}>
@@ -52,31 +48,6 @@ export default async function PerfilPage() {
               has_bases: profile.has_bases ? "SIM" : "NAO",
             }}
           />
-        </section>
-
-        <section className="card">
-          <h2 className="font-bold text-stone-900">Notificações do chat</h2>
-          <p className="mt-1 text-sm text-stone-600">Silencie um SOMA para não receber avisos de novas mensagens. Avisos de reuniões continuam chegando.</p>
-          {memberships?.length ? (
-            <ul className="mt-3 divide-y divide-stone-100">
-              {memberships.map((m) => (
-                <li key={m.soma_id} className="flex min-h-[52px] items-center justify-between gap-3">
-                  <Link href={`/somas/${m.soma_id}/chat`} className="font-medium text-stone-800 hover:underline">
-                    {(m.soma as unknown as { name: string })?.name}
-                  </Link>
-                  <form action={setChatMuted} className="flex items-center gap-3">
-                    <input type="hidden" name="soma_id" value={m.soma_id} />
-                    <input type="hidden" name="muted" value={m.chat_muted ? "0" : "1"} />
-                    <input type="hidden" name="back" value="/perfil" />
-                    <span className="text-xs text-stone-500">{m.chat_muted ? "Silenciado" : "Avisos ativos"}</span>
-                    <button className="btn-secondary min-h-[40px] px-3 text-xs">{m.chat_muted ? "Ativar" : "Silenciar"}</button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-stone-500">Você ainda não participa de nenhum SOMA.</p>
-          )}
         </section>
 
         <section className="card space-y-4">

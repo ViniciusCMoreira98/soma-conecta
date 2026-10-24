@@ -61,7 +61,7 @@ export default async function ParticipacaoPage({
         {error && <Alert tone="error">Não foi possível carregar a participação.</Alert>}
         {!!pending && (
           <Alert>
-            {pending} {pending === 1 ? "reunião realizada no período está" : "reuniões realizadas no período estão"} sem presença registrada e
+            {pending} {pending === 1 ? "encontro realizado no período está" : "encontros realizados no período estão"} sem presença registrada e
             não {pending === 1 ? "entra" : "entram"} no cálculo. <Link href={`/somas/${id}/reunioes`} className="font-semibold underline">Registrar presença</Link>
           </Alert>
         )}
@@ -86,8 +86,8 @@ export default async function ParticipacaoPage({
                     </p>
                     <p className="text-xs text-stone-500">
                       {r.meetings_total
-                        ? `${r.present} de ${r.meetings_total} ${r.meetings_total === 1 ? "reunião" : "reuniões"}`
-                        : "Sem reuniões com presença registrada desde a entrada"}
+                        ? `${r.present} de ${r.meetings_total} ${r.meetings_total === 1 ? "encontro" : "encontros"}`
+                        : "Sem encontros com presença registrada desde a entrada"}
                       {r.last_present ? ` · última presença em ${formatDate(r.last_present + "T12:00:00")}` : ""}
                     </p>
                     {pct !== null && (
@@ -103,7 +103,7 @@ export default async function ParticipacaoPage({
           </ul>
         )}
         <p className="text-xs text-stone-500">
-          Contam apenas reuniões já realizadas e com presença registrada, a partir da entrada de cada membro no app (ou anteriores, se ele foi marcado presente).
+          Contam apenas encontros já realizados e com presença registrada, a partir da entrada de cada membro no app (ou anteriores, se ele foi marcado presente).
           Use este resumo para cuidar de quem está se afastando — ele não é visível para os membros.
         </p>
       </div>

@@ -13,8 +13,8 @@ const meetingSchema = z
   .object({
     meeting_date: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da reunião.")
-      // Datas futuras viram reuniões agendadas (até 1 ano à frente).
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do encontro.")
+      // Datas futuras viram encontros agendados (até 1 ano à frente).
       .refine((d) => d <= new Date(Date.now() + 366 * 86400000).toISOString().slice(0, 10), "Agende no máximo com 1 ano de antecedência."),
     start_time: time,
     end_time: time,
@@ -55,8 +55,8 @@ export async function createMeeting(_: ActionState, form: FormData): Promise<Act
     .select("id")
     .single();
   if (error) {
-    if (error.code === "23505") return { message: "Já existe uma reunião registrada nesta data e horário." };
-    return { message: "Não foi possível registrar a reunião. Verifique se você é o responsável deste SOMA." };
+    if (error.code === "23505") return { message: "Já existe um encontro registrado nesta data e horário." };
+    return { message: "Não foi possível registrar o encontro. Verifique se você é o responsável deste SOMA." };
   }
   revalidatePath(`/somas/${somaId}/reunioes`);
   redirect(`/somas/${somaId}/reunioes/${data.id}?criada=1`);
@@ -71,11 +71,11 @@ export async function updateMeeting(_: ActionState, form: FormData): Promise<Act
   const supabase = await createClient();
   const { error } = await supabase.from("meetings").update(payload(parsed.data)).eq("id", meetingId).eq("soma_id", somaId);
   if (error) {
-    if (error.code === "23505") return { message: "Já existe uma reunião registrada nesta data e horário." };
+    if (error.code === "23505") return { message: "Já existe um encontro registrado nesta data e horário." };
     return { message: "Não foi possível salvar as alterações." };
   }
   revalidatePath(`/somas/${somaId}`, "layout");
-  return { ok: true, message: "Reunião atualizada." };
+  return { ok: true, message: "Encontro atualizado." };
 }
 
 export async function deleteMeeting(form: FormData) {
@@ -88,7 +88,7 @@ export async function deleteMeeting(form: FormData) {
 
   const { error } = await supabase.from("meetings").delete().eq("id", meetingId).eq("soma_id", somaId);
   revalidatePath(`/somas/${somaId}`, "layout");
-  if (error) redirect(`/somas/${somaId}/reunioes?erro=${encodeURIComponent("Não foi possível excluir a reunião.")}`);
+  if (error) redirect(`/somas/${somaId}/reunioes?erro=${encodeURIComponent("Não foi possível excluir o encontro.")}`);
   redirect(`/somas/${somaId}/reunioes?ok=1`);
 }
 
@@ -118,8 +118,8 @@ export async function uploadPhotos(_: ActionState, form: FormData): Promise<Acti
   if (!user) redirect("/entrar");
 
   const { data: meeting } = await supabase.from("meetings").select("id, meeting_date").eq("id", meetingId).eq("soma_id", somaId).maybeSingle();
-  if (!meeting) return { message: "Reunião não encontrada." };
-  if (meeting.meeting_date > todayLocal()) return { message: "As fotos podem ser enviadas a partir do dia da reunião." };
+  if (!meeting) return { message: "Encontro não encontrado." };
+  if (meeting.meeting_date > todayLocal()) return { message: "As fotos podem ser enviadas a partir do dia do encontro." };
 
   let sent = 0;
   const failed: string[] = [];

@@ -22,7 +22,7 @@ export default function AttendanceForm({
       <div>
         <h3 className="font-bold text-soma-900">Presença</h3>
         <p className="text-sm text-stone-600">
-          {taken ? "Presença registrada. Você pode corrigir a qualquer momento." : "Marque quem participou desta reunião."}
+          {taken ? "Presença registrada. Você pode corrigir a qualquer momento." : "Marque quem participou deste encontro."}
         </p>
       </div>
       {state.message && <Alert tone={state.ok ? "success" : "error"}>{state.message}</Alert>}

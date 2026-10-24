@@ -15,36 +15,28 @@ export default async function SomaPage({
   const { erro, solicitado } = await searchParams;
   const { supabase, profile, user } = await requireCompleteProfile();
 
-  // Dados públicos (sem informações pessoais) — qualquer usuário autenticado.
-  const { data: soma } = await supabase.from("somas_public").select("*").eq("id", id).maybeSingle();
+  // Dados públicos (sem informações pessoais) e associação (sob RLS; o servidor não confia na interface).
+  const [{ data: soma }, { data: membership }] = await Promise.all([
+    supabase.from("somas_public").select("*").eq("id", id).maybeSingle(),
+    supabase.from("soma_members").select("role").eq("soma_id", id).eq("user_id", user.id).eq("status", "ACTIVE").maybeSingle(),
+  ]);
   if (!soma) notFound();
-
-  // A associação é consultada sob RLS; o servidor não confia na interface.
-  const { data: membership } = await supabase
-    .from("soma_members").select("role").eq("soma_id", id).eq("user_id", user.id).eq("status", "ACTIVE").maybeSingle();
   const isMember = !!membership;
   const isLeader = membership?.role === "LEADER";
 
-  const { data: myReq } = isMember
-    ? { data: null }
-    : await supabase.from("soma_join_requests").select("id, status").eq("soma_id", id).eq("user_id", user.id)
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
-
-  // Dados extras só para membros (RLS em somas)
-  const { data: full } = isMember
-    ? await supabase.from("somas").select("location_hint, extra_info, frequency, end_time").eq("id", id).single()
-    : { data: null };
-
-  // Próxima reunião agendada (hoje em diante) e última realizada (antes de hoje).
+  // Membros: dados extras (RLS em somas) + próximo encontro agendado (hoje em diante) e último realizado.
+  // Não membros: só a última solicitação de entrada.
   const today = todayLocal();
-  const [{ data: nextMeeting }, { data: lastMeeting }] = isMember
-    ? await Promise.all([
-        supabase.from("meetings").select("id, meeting_date, start_time, title").eq("soma_id", id)
-          .gte("meeting_date", today).order("meeting_date").order("start_time", { nullsFirst: false }).limit(1).maybeSingle(),
-        supabase.from("meetings").select("id, meeting_date, start_time, title").eq("soma_id", id)
-          .lt("meeting_date", today).order("meeting_date", { ascending: false }).limit(1).maybeSingle(),
-      ])
-    : [{ data: null }, { data: null }];
+  const none = { data: null };
+  const [{ data: myReq }, { data: full }, { data: nextMeeting }, { data: lastMeeting }] = await Promise.all([
+    isMember ? none : supabase.from("soma_join_requests").select("id, status").eq("soma_id", id).eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    isMember ? supabase.from("somas").select("location_hint, extra_info, frequency, end_time").eq("id", id).single() : none,
+    isMember ? supabase.from("meetings").select("id, meeting_date, start_time, title").eq("soma_id", id)
+      .gte("meeting_date", today).order("meeting_date").order("start_time", { nullsFirst: false }).limit(1).maybeSingle() : none,
+    isMember ? supabase.from("meetings").select("id, meeting_date, start_time, title").eq("soma_id", id)
+      .lt("meeting_date", today).order("meeting_date", { ascending: false }).limit(1).maybeSingle() : none,
+  ]);
   const when = (m: { meeting_date: string; start_time: string | null }) =>
     `${formatDate(m.meeting_date + "T12:00:00")}${m.start_time ? ` às ${formatTime(m.start_time)}` : ""}`;
 
@@ -85,7 +77,7 @@ export default async function SomaPage({
         {isMember && (
           <section className="grid gap-3 sm:grid-cols-2">
             <div className="card text-sm text-stone-700">
-              <h2 className="flex items-center gap-2 font-bold text-stone-900"><CalendarClock className="h-4 w-4 text-soma-600" aria-hidden /> Próxima reunião</h2>
+              <h2 className="flex items-center gap-2 font-bold text-stone-900"><CalendarClock className="h-4 w-4 text-soma-600" aria-hidden /> Próximo encontro</h2>
               {nextMeeting ? (
                 <Link href={`/somas/${id}/reunioes/${nextMeeting.id}`} className="mt-1 block font-semibold text-soma-700 underline">
                   {nextMeeting.meeting_date === today ? "Hoje" : when(nextMeeting)}
@@ -94,21 +86,21 @@ export default async function SomaPage({
                 </Link>
               ) : (
                 <p className="mt-1">
-                  Nenhuma reunião agendada.{" "}
+                  Nenhum encontro agendado.{" "}
                   {isLeader
-                    ? <Link href={`/somas/${id}/reunioes/nova`} className="font-semibold text-soma-700 underline">Agendar a próxima</Link>
+                    ? <Link href={`/somas/${id}/reunioes/nova`} className="font-semibold text-soma-700 underline">Agendar o próximo</Link>
                     : `Encontros: ${WEEKDAY_LABEL[soma.weekday]} às ${formatTime(soma.start_time)}.`}
                 </p>
               )}
             </div>
             <div className="card text-sm text-stone-700">
-              <h2 className="flex items-center gap-2 font-bold text-stone-900"><History className="h-4 w-4 text-soma-600" aria-hidden /> Última reunião</h2>
+              <h2 className="flex items-center gap-2 font-bold text-stone-900"><History className="h-4 w-4 text-soma-600" aria-hidden /> Último encontro</h2>
               {lastMeeting ? (
                 <Link href={`/somas/${id}/reunioes/${lastMeeting.id}`} className="mt-1 block font-semibold text-soma-700 underline">
-                  {lastMeeting.title || "Reunião do SOMA"} · {formatDate(lastMeeting.meeting_date + "T12:00:00")}
+                  {lastMeeting.title || "Encontro do SOMA"} · {formatDate(lastMeeting.meeting_date + "T12:00:00")}
                 </Link>
               ) : (
-                <p className="mt-1">Nenhuma reunião registrada ainda.</p>
+                <p className="mt-1">Nenhum encontro registrado ainda.</p>
               )}
             </div>
           </section>
@@ -133,20 +125,13 @@ export default async function SomaPage({
 
         {isMember && (
           <section className="card text-sm text-stone-600">
-            <div className="flex flex-wrap gap-2">
-              <Link href={`/somas/${id}/reunioes`} className="btn-secondary">Reuniões</Link>
-              <Link href={`/somas/${id}/fotos`} className="btn-secondary">Fotos</Link>
-              <Link href={`/somas/${id}/chat`} className="btn-secondary">Chat</Link>
-              <Link href={`/somas/${id}/membros`} className="btn-secondary">Membros</Link>
-              {isLeader && <Link href={`/somas/${id}/participacao`} className="btn-secondary">Participação</Link>}
-            </div>
             {isLeader ? (
-              <p className="mt-3">
+              <p>
                 Você é o responsável. Para sair do SOMA,{" "}
                 <Link href={`/somas/${id}/membros#transferir`} className="font-semibold text-soma-700 underline">transfira a liderança</Link> para outro membro.
               </p>
             ) : (
-              <div className="mt-3">
+              <div>
                 <ConfirmForm action={leaveSoma} message="Tem certeza que deseja sair deste SOMA?">
                   <input type="hidden" name="soma_id" value={id} />
                   <button className="font-semibold text-red-700 underline">Sair deste SOMA</button>

@@ -17,13 +17,13 @@ export default async function Home() {
         Comunhão perto de você, organizada em um só lugar.
       </h1>
       <p className="mt-4 text-lg text-stone-600">
-        Encontre um SOMA na sua região, acompanhe as reuniões e converse com o seu grupo.
+        Encontre um SOMA na sua região, acompanhe os encontros e converse com o seu grupo.
       </p>
 
       <ul className="mt-8 space-y-3 text-stone-700">
         <li className="flex items-center gap-3"><MapPin className="h-5 w-5 text-soma-600" aria-hidden /> Busque por bairro, dia e horário</li>
         <li className="flex items-center gap-3"><HeartHandshake className="h-5 w-5 text-soma-600" aria-hidden /> Solicite entrada e acompanhe a resposta</li>
-        <li className="flex items-center gap-3"><MessagesSquare className="h-5 w-5 text-soma-600" aria-hidden /> Reuniões, fotos e chat do seu grupo</li>
+        <li className="flex items-center gap-3"><MessagesSquare className="h-5 w-5 text-soma-600" aria-hidden /> Encontros, fotos e chat do seu grupo</li>
       </ul>
 
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">

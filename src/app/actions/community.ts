@@ -29,17 +29,6 @@ export async function reportContent(_: ActionState, form: FormData): Promise<Act
   return { ok: true, message: "Denúncia enviada. A administração vai analisar com cuidado." };
 }
 
-/** Silencia (ou volta a avisar) as notificações do chat de um SOMA. */
-export async function setChatMuted(form: FormData) {
-  const somaId = String(form.get("soma_id"));
-  const back = safePath(form.get("back"), `/somas/${somaId}/chat`);
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("set_chat_muted", { p_soma: somaId, p_muted: form.get("muted") === "1" });
-  revalidatePath(back.split("?")[0]);
-  if (error) redirect(withParams(back, { erro: dbMessage(error, "Não foi possível salvar a preferência.") }));
-  redirect(back);
-}
-
 /** Transfere a liderança (pelo responsável ou por um administrador), com opção de sair do grupo. */
 export async function transferLeadership(form: FormData) {
   const somaId = String(form.get("soma_id"));
@@ -56,7 +45,7 @@ export async function transferLeadership(form: FormData) {
   redirect(withParams(back, { ok: "Liderança transferida." }));
 }
 
-/** Grava a lista de presença de uma reunião. */
+/** Grava a lista de presença de um encontro. */
 export async function saveAttendance(_: ActionState, form: FormData): Promise<ActionState> {
   const somaId = String(form.get("soma_id"));
   const meetingId = String(form.get("meeting_id"));
