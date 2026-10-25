@@ -4,6 +4,7 @@ import AppShell from "@/components/AppShell";
 import { Alert, ConfirmForm, EmptyState, StatusBadge } from "@/components/ui";
 import { requestJoin } from "@/app/actions/somas";
 import NearMeButton from "@/components/NearMeButton";
+import SearchPanel from "@/components/SearchPanel";
 import { requireCompleteProfile } from "@/lib/auth";
 import { WEEKDAY_LABEL, formatTime } from "@/lib/labels";
 import { WEEKDAYS } from "@/lib/validation/schemas";
@@ -13,8 +14,9 @@ const PAGE_SIZE = 12;
 
 type SP = {
   q?: string; bairro?: string; dia?: string; periodo?: string; vagas?: string; pagina?: string; erro?: string; solicitado?: string;
-  lat?: string; lng?: string; raio?: string;
+  lat?: string; lng?: string; raio?: string; buscou?: string;
 };
+const PERIOD_LABEL: Record<string, string> = { MANHA: "Manhã", TARDE: "Tarde", NOITE: "Noite" };
 type SomaCard = {
   id: string; name: string; description: string; neighborhood: string; weekday: string; start_time: string;
   cover_url: string | null; accepting_members: boolean; leader_name: string; member_count: number; distance_km?: number;
@@ -65,7 +67,7 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
   const pendingIn = new Set((pendingReqs ?? []).map((r) => r.soma_id));
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const FILTERS = ["q", "bairro", "dia", "periodo", "vagas", "lat", "lng", "raio"] as const;
+  const FILTERS = ["q", "bairro", "dia", "periodo", "vagas", "lat", "lng", "raio", "buscou"] as const;
   const qs = (p: number) => {
     const u = new URLSearchParams();
     FILTERS.forEach((k) => sp[k] && u.set(k, sp[k]!));
@@ -78,12 +80,25 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
     return `/encontrar${u.size ? `?${u}` : ""}`;
   };
 
+  // Após uma busca, o formulário fica recolhido num resumo ("Refazer busca") para os resultados aparecerem logo.
+  const searched = sp.buscou === "1" || nearby;
+  const summary = [
+    sp.q && `"${sp.q}"`,
+    sp.bairro && sp.bairro,
+    sp.dia && WEEKDAY_LABEL[sp.dia],
+    sp.periodo && PERIOD_LABEL[sp.periodo],
+    sp.vagas === "1" && "Aceitando membros",
+    nearby && `Até ${raio} km de você`,
+  ].filter(Boolean).join(" · ") || "Todos os SOMAS";
+
   return (
     <AppShell profile={profile}>
       <h1 className="text-2xl font-extrabold text-soma-900">Encontrar um SOMA</h1>
       <p className="mt-1 text-sm text-stone-600">Busque pelo seu bairro, dia e horário.</p>
 
+      <SearchPanel key={JSON.stringify(sp)} searched={searched} summary={summary}>
       <form className="card mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5" role="search">
+        <input type="hidden" name="buscou" value="1" />
         <div className="sm:col-span-2 lg:col-span-1">
           <label htmlFor="q" className="label">Nome</label>
           <input id="q" name="q" defaultValue={sp.q} className="input" placeholder="Nome do SOMA" />
@@ -130,10 +145,11 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
           </div>
         )}
         <div className="flex flex-wrap items-start gap-3 sm:col-span-2 lg:col-span-5">
-          <button className="btn-primary w-full sm:w-auto"><Search className="h-4 w-4" aria-hidden /> Buscar</button>
+          <button className="btn-primary flex-1 sm:flex-none"><Search className="h-4 w-4" aria-hidden /> Buscar</button>
           {!nearby && <NearMeButton />}
         </div>
       </form>
+      </SearchPanel>
 
       <div className="mt-6 space-y-4" aria-live="polite">
         {sp.erro && <Alert tone="error">{sp.erro}</Alert>}

@@ -37,7 +37,7 @@ export default function NearMeButton() {
   }
 
   return (
-    <div>
+    <div className="flex-1 sm:flex-none">
       <button type="button" onClick={locate} disabled={loading} className="btn-secondary w-full sm:w-auto">
         {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <LocateFixed className="h-4 w-4" aria-hidden />}
         Perto de mim
