@@ -3,6 +3,7 @@ import { Clock, MapPin, Search, UserRound } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Alert, ConfirmForm, EmptyState, StatusBadge } from "@/components/ui";
 import { requestJoin } from "@/app/actions/somas";
+import NearMeButton from "@/components/NearMeButton";
 import { requireCompleteProfile } from "@/lib/auth";
 import { WEEKDAY_LABEL, formatTime } from "@/lib/labels";
 import { WEEKDAYS } from "@/lib/validation/schemas";
@@ -10,7 +11,16 @@ import { WEEKDAYS } from "@/lib/validation/schemas";
 export const metadata = { title: "Encontrar um SOMA" };
 const PAGE_SIZE = 12;
 
-type SP = { q?: string; bairro?: string; dia?: string; periodo?: string; vagas?: string; pagina?: string; erro?: string; solicitado?: string };
+type SP = {
+  q?: string; bairro?: string; dia?: string; periodo?: string; vagas?: string; pagina?: string; erro?: string; solicitado?: string;
+  lat?: string; lng?: string; raio?: string;
+};
+type SomaCard = {
+  id: string; name: string; description: string; neighborhood: string; weekday: string; start_time: string;
+  cover_url: string | null; accepting_members: boolean; leader_name: string; member_count: number; distance_km?: number;
+};
+const RADII = [5, 10, 25, 50];
+const distanceLabel = (km: number) => (km < 1 ? "Menos de 1 km" : `Cerca de ${km} km`);
 
 // Escapa caracteres especiais do filtro ilike/or do PostgREST.
 const clean = (s: string) => s.replace(/[%,()*\\]/g, " ").trim().slice(0, 80);
@@ -20,10 +30,15 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.pagina) || 1);
 
-  let query = supabase
-    .from("somas_public")
-    .select("id, name, description, neighborhood, weekday, start_time, cover_url, accepting_members, leader_name, member_count", { count: "exact" })
-    .order("name");
+  // Busca por proximidade: com lat/lng, ordena por distância dentro do raio (a função não expõe as coordenadas).
+  const lat = Number(sp.lat), lng = Number(sp.lng);
+  const nearby = !!sp.lat && !!sp.lng && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+  const raio = RADII.includes(Number(sp.raio)) ? Number(sp.raio) : 10;
+  const cols = "id, name, description, neighborhood, weekday, start_time, cover_url, accepting_members, leader_name, member_count";
+
+  let query = nearby
+    ? supabase.rpc("somas_nearby", { p_lat: lat, p_lng: lng, p_radius_km: raio }, { count: "exact" }).select(`${cols}, distance_km`)
+    : supabase.from("somas_public").select(cols, { count: "exact" }).order("name");
 
   if (sp.q && clean(sp.q)) query = query.ilike("name", `%${clean(sp.q)}%`);
   if (sp.bairro && clean(sp.bairro)) query = query.ilike("neighborhood", `%${clean(sp.bairro)}%`);
@@ -34,7 +49,8 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
   if (sp.periodo === "NOITE") query = query.gte("start_time", "18:00");
 
   const from = (page - 1) * PAGE_SIZE;
-  const { data: somas, count, error } = await query.range(from, from + PAGE_SIZE - 1);
+  const { data, count, error } = await query.range(from, from + PAGE_SIZE - 1);
+  const somas = data as SomaCard[] | null;
   const total = count ?? 0;
 
   // Situação do usuário em cada SOMA da página (para o botão "Solicitar entrada" no cartão).
@@ -49,12 +65,17 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
   const pendingIn = new Set((pendingReqs ?? []).map((r) => r.soma_id));
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const FILTERS = ["q", "bairro", "dia", "periodo", "vagas"] as const;
+  const FILTERS = ["q", "bairro", "dia", "periodo", "vagas", "lat", "lng", "raio"] as const;
   const qs = (p: number) => {
     const u = new URLSearchParams();
     FILTERS.forEach((k) => sp[k] && u.set(k, sp[k]!));
     u.set("pagina", String(p));
     return `/encontrar?${u}`;
+  };
+  const qsWithout = (drop: string[]) => {
+    const u = new URLSearchParams();
+    FILTERS.forEach((k) => sp[k] && !drop.includes(k) && u.set(k, sp[k]!));
+    return `/encontrar${u.size ? `?${u}` : ""}`;
   };
 
   return (
@@ -93,8 +114,24 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
             Aceitando membros
           </label>
         </div>
-        <div className="sm:col-span-2 lg:col-span-5">
+        {nearby && (
+          <div className="flex flex-wrap items-end gap-3 sm:col-span-2 lg:col-span-5">
+            <input type="hidden" name="lat" value={sp.lat} />
+            <input type="hidden" name="lng" value={sp.lng} />
+            <div>
+              <label htmlFor="raio" className="label">Distância máxima</label>
+              <select id="raio" name="raio" defaultValue={String(raio)} className="input">
+                {RADII.map((r) => <option key={r} value={r}>Até {r} km</option>)}
+              </select>
+            </div>
+            <Link href={qsWithout(["lat", "lng", "raio"])} className="flex min-h-[44px] items-center text-sm font-semibold text-soma-700 underline">
+              Desativar busca por proximidade
+            </Link>
+          </div>
+        )}
+        <div className="flex flex-wrap items-start gap-3 sm:col-span-2 lg:col-span-5">
           <button className="btn-primary w-full sm:w-auto"><Search className="h-4 w-4" aria-hidden /> Buscar</button>
+          {!nearby && <NearMeButton />}
         </div>
       </form>
 
@@ -105,7 +142,10 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
           <EmptyState title="Não foi possível carregar os SOMAS">Tente novamente em instantes.</EmptyState>
         ) : !somas?.length ? (
           <EmptyState title="Nenhum SOMA encontrado">
-            Tente outro bairro ou limpe os filtros. Que tal{" "}
+            {nearby
+              ? "Nenhum SOMA com localização cadastrada nesse raio. Aumente a distância ou busque pelo bairro. "
+              : "Tente outro bairro ou limpe os filtros. "}
+            Que tal{" "}
             <Link href="/cadastrar-soma" className="font-semibold text-soma-700 underline">cadastrar o seu</Link>?
           </EmptyState>
         ) : (
@@ -123,7 +163,10 @@ export default async function EncontrarPage({ searchParams }: { searchParams: Pr
                     {s.accepting_members && <StatusBadge text="Aceita membros" tone="green" />}
                   </div>
                   <ul className="mt-2 space-y-1 text-sm text-stone-600">
-                    <li className="flex items-center gap-2"><MapPin className="h-4 w-4" aria-hidden /> {s.neighborhood}</li>
+                    <li className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" aria-hidden /> {s.neighborhood}
+                      {s.distance_km != null && <span className="font-semibold text-soma-700">· {distanceLabel(Number(s.distance_km))}</span>}
+                    </li>
                     <li className="flex items-center gap-2"><Clock className="h-4 w-4" aria-hidden /> {WEEKDAY_LABEL[s.weekday]} às {formatTime(s.start_time)}</li>
                     <li className="flex items-center gap-2"><UserRound className="h-4 w-4" aria-hidden /> {s.leader_name}</li>
                   </ul>

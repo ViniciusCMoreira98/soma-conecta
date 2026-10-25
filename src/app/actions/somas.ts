@@ -6,13 +6,21 @@ import { createClient } from "@/lib/supabase/server";
 import { dbMessage, safePath, withParams } from "@/lib/db-errors";
 import { rejectionSchema, somaSchema, zodErrors, type ActionState } from "@/lib/validation/schemas";
 
+/** Coordenadas do LocationPicker (campos vazios ou inválidos = sem localização). */
+function coords(form: FormData) {
+  const lat = Number(form.get("latitude") || NaN);
+  const lng = Number(form.get("longitude") || NaN);
+  const ok = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+  return ok ? { p_lat: lat, p_lng: lng } : { p_lat: null, p_lng: null };
+}
+
 export async function requestSomaRegistration(_: ActionState, form: FormData): Promise<ActionState> {
   const parsed = somaSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { errors: zodErrors(parsed.error) };
   const v = parsed.data;
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("request_soma_registration", {
+  const { data: somaId, error } = await supabase.rpc("request_soma_registration", {
     p_name: v.name,
     p_description: v.description,
     p_neighborhood: v.neighborhood,
@@ -25,6 +33,8 @@ export async function requestSomaRegistration(_: ActionState, form: FormData): P
     p_extra_info: v.extra_info || null,
   });
   if (error) return { message: dbMessage(error, "Não foi possível enviar a solicitação. Tente novamente.") };
+  const loc = coords(form);
+  if (loc.p_lat !== null) await supabase.rpc("set_soma_location", { p_soma: somaId, ...loc });
 
   revalidatePath("/meus-somas");
   redirect("/meus-somas?enviado=1");
@@ -132,6 +142,8 @@ export async function updateSomaSettings(_: ActionState, form: FormData): Promis
     })
     .eq("id", somaId);
   if (error) return { message: "Não foi possível salvar. Verifique se você é o responsável deste SOMA." };
+  const { error: locError } = await supabase.rpc("set_soma_location", { p_soma: somaId, ...coords(form) });
+  if (locError) return { message: dbMessage(locError, "As informações foram salvas, mas não foi possível salvar a localização.") };
   revalidatePath(`/somas/${somaId}`, "layout");
   return { ok: true, message: "Informações atualizadas." };
 }

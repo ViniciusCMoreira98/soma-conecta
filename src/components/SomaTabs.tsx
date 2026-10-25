@@ -19,6 +19,7 @@ export default async function SomaTabs({ somaId, active, isLeader }: { somaId: s
     { key: "fotos", href: `/somas/${somaId}/fotos`, label: "Fotos" },
     { key: "membros", href: `/somas/${somaId}/membros`, label: "Membros" },
     { key: "avisos", href: `/somas/${somaId}/avisos`, label: "Avisos" },
+    { key: "oracao", href: `/somas/${somaId}/oracao`, label: "Oração" },
     { key: "chat", href: `/somas/${somaId}/chat`, label: "Chat" },
     ...(isLeader
       ? [
