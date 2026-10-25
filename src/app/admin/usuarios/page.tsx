@@ -15,7 +15,7 @@ export default async function AdminUsuariosPage({ searchParams }: { searchParams
   const page = Math.max(1, Number(sp.pagina) || 1);
 
   let query = supabase
-    .from("profiles")
+    .from("profiles_private")
     .select("id, full_name, email, phone, avatar_url, role, status, created_at", { count: "exact" })
     .order("created_at", { ascending: false });
   const q = sp.q ? clean(sp.q) : "";

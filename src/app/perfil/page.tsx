@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import { ProfileForm } from "@/components/AuthForms";
 import { AvatarUploader } from "@/components/ImageUpload";
 import DataRequestForm from "@/components/DataRequestForm";
+import { InstallAppButton } from "@/components/InstallApp";
 import { Avatar, ConfirmForm, StatusBadge } from "@/components/ui";
 import { removeAvatar } from "@/app/actions/media";
 import { requireCompleteProfile } from "@/lib/auth";
@@ -22,6 +23,7 @@ export default async function PerfilPage() {
       <p className="mt-1 text-sm text-stone-600">{profile.email}</p>
 
       <div className="mt-5 grid max-w-3xl gap-5">
+        <InstallAppButton className="w-full sm:w-auto sm:justify-self-start" />
         <section className="card space-y-4">
           <h2 className="font-bold text-stone-900">Foto de perfil</h2>
           <div className="flex items-center gap-4">

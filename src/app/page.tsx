@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { HeartHandshake, MapPin, MessagesSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { InstallAppButton } from "@/components/InstallApp";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -30,6 +31,7 @@ export default async function Home() {
         <Link href="/cadastro" className="btn-primary">Criar conta</Link>
         <Link href="/entrar" className="btn-secondary">Entrar</Link>
       </div>
+      <InstallAppButton className="mt-6 w-full sm:w-auto" />
     </main>
   );
 }

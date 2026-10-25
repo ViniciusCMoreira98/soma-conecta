@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { privateProfiles } from "@/lib/profiles";
 import { notFound, redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import SomaTabs from "@/components/SomaTabs";
@@ -23,9 +24,11 @@ export default async function SolicitacoesPage({
 
   const { data: reqs } = await supabase
     .from("soma_join_requests")
-    .select("id, status, created_at, decided_at, rejection_reason, user:profiles!soma_join_requests_user_id_fkey(full_name, age, phone, has_bases)")
+    .select("id, user_id, status, created_at, decided_at, rejection_reason, user:profiles!soma_join_requests_user_id_fkey(full_name)")
     .eq("soma_id", id).order("created_at", { ascending: false }).limit(50);
 
+  // Idade, celular e bases só dos pedidos pendentes (profiles_private); no histórico, apenas o nome.
+  const contacts = await privateProfiles(supabase, (reqs ?? []).filter((r) => r.status === "PENDING").map((r) => r.user_id));
   const pending = reqs?.filter((r) => r.status === "PENDING") ?? [];
   const history = reqs?.filter((r) => r.status !== "PENDING") ?? [];
 
@@ -44,7 +47,7 @@ export default async function SolicitacoesPage({
         ) : (
           <ul className="space-y-3">
             {pending.map((r) => {
-              const u = r.user as unknown as { full_name: string; age: number; phone: string; has_bases: boolean };
+              const u = { ...(r.user as unknown as { full_name: string }), ...contacts.get(r.user_id) } as { full_name: string; age: number; phone: string; has_bases: boolean };
               return (
                 <li key={r.id} className="card space-y-3">
                   <div>

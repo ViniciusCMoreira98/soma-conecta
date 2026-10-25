@@ -198,6 +198,7 @@ Ficam em `supabase/migrations/`, numeradas, e são aplicadas **em ordem e manual
 | `0007_chat_excluir_mensagem` | Autor/responsável excluem mensagens |
 | `0008_reunioes_para_encontros` | Textos do banco: "reunião" → "encontro" |
 | `0009_proximidade_oracao` | Busca por proximidade e pedidos de oração |
+| `0010_privacidade_perfis` | Celular/idade/e-mail protegidos por coluna; visão `profiles_private` |
 
 ### Tabelas (por domínio)
 
@@ -389,7 +390,9 @@ Mensagens de chat **não** geram notificação geral (decisão de produto, migra
 
 ## 12. Privacidade e LGPD
 
-- **Dados mínimos públicos:** a busca usa `somas_public`, sem contato do responsável. Celular/idade só aparecem para o responsável ao avaliar um pedido de entrada.
+- **Dados mínimos públicos:** a busca usa `somas_public`, sem contato do responsável.
+- **Dados pessoais do perfil:** a tabela `profiles` só libera **id, nome e foto** a usuários comuns (privilégio por coluna). Celular, idade, e-mail e "bases" são lidos pela visão **`profiles_private`**, que só retorna: o próprio usuário, administradores e — para o responsável — membros ativos do seu SOMA e quem tem pedido de entrada pendente. No código, use `privateProfiles()` (`lib/profiles.ts`); **nunca** selecione essas colunas direto de `profiles`.
+- **Cabeçalhos HTTP de segurança** (`next.config.mjs`): CSP `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` (só geolocalização) e HSTS.
 - **Localização:** coordenadas guardadas com ~11 m de precisão e **nunca** retornadas; `somas_nearby()` devolve só a distância arredondada. O navegador envia a posição do usuário com ~100 m de precisão.
 - **Pedidos de oração anônimos:** a tabela não é legível pelos membros; `list_prayers()` oculta o autor.
 - **Fotos de encontros:** bucket privado + URLs assinadas temporárias; consentimento obrigatório no envio.
