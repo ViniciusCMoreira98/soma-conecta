@@ -4,6 +4,8 @@ import { ProfileForm } from "@/components/AuthForms";
 import { AvatarUploader } from "@/components/ImageUpload";
 import DataRequestForm from "@/components/DataRequestForm";
 import { InstallAppButton } from "@/components/InstallApp";
+import { LogOut } from "lucide-react";
+import { signOut } from "@/app/actions/auth";
 import { Avatar, ConfirmForm, StatusBadge } from "@/components/ui";
 import { removeAvatar } from "@/app/actions/media";
 import { requireCompleteProfile } from "@/lib/auth";
@@ -77,6 +79,10 @@ export default async function PerfilPage() {
           )}
           <DataRequestForm />
         </section>
+
+        <ConfirmForm action={signOut} message="Sair da sua conta?">
+          <button className="btn-secondary w-full sm:w-auto"><LogOut className="h-4 w-4" aria-hidden /> Sair da conta</button>
+        </ConfirmForm>
       </div>
     </AppShell>
   );

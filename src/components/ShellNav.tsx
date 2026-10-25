@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Compass, Home, Settings, ShieldCheck, Users } from "lucide-react";
+import { Bell, Compass, Home, LogOut, Settings, ShieldCheck, Users } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,16 +46,23 @@ export default function ShellNav({
           <Link href="/encontrar" className="flex items-center gap-2 font-bold text-soma-700">
             <Home className="h-5 w-5" aria-hidden /> SOMA Conecta
           </Link>
-          {/* Atalho para avisos no topo do celular */}
-          <Link href="/notificacoes" className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-700 md:hidden"
-            aria-label={unread ? `Avisos: ${unread} não lidos` : "Avisos"}>
-            <Bell className="h-5 w-5" aria-hidden />
-            {unread > 0 && (
-              <span className="absolute right-0.5 top-0.5 min-w-[20px] rounded-full bg-red-600 px-1 text-center text-[11px] font-bold leading-5 text-white" aria-hidden>
-                {badgeText}
-              </span>
-            )}
-          </Link>
+          {/* Atalhos no topo do celular: avisos e sair */}
+          <div className="flex items-center md:hidden">
+            <Link href="/notificacoes" className="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-700"
+              aria-label={unread ? `Avisos: ${unread} não lidos` : "Avisos"}>
+              <Bell className="h-5 w-5" aria-hidden />
+              {unread > 0 && (
+                <span className="absolute right-0.5 top-0.5 min-w-[20px] rounded-full bg-red-600 px-1 text-center text-[11px] font-bold leading-5 text-white" aria-hidden>
+                  {badgeText}
+                </span>
+              )}
+            </Link>
+            <form action={signOut} onSubmit={(e) => { if (!window.confirm("Sair da sua conta?")) e.preventDefault(); }}>
+              <button className="flex h-11 w-11 items-center justify-center rounded-full text-stone-700" aria-label="Sair da conta" title="Sair">
+                <LogOut className="h-5 w-5" aria-hidden />
+              </button>
+            </form>
+          </div>
           <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
             {links.map(({ href, label, badge }) => (
               <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined}
