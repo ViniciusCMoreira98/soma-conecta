@@ -1,4 +1,5 @@
 import { Alert, ConfirmForm, EmptyState, StatusBadge } from "@/components/ui";
+import { privateProfiles } from "@/lib/profiles";
 import { decideRegistration } from "@/app/actions/somas";
 import { requireAdmin } from "@/lib/auth";
 import { FREQUENCY_LABEL, STATUS_LABEL, WEEKDAY_LABEL, formatDate, formatTime } from "@/lib/labels";
@@ -12,10 +13,12 @@ export default async function AdminSolicitacoesPage({ searchParams }: { searchPa
   const { data: reqs } = await supabase
     .from("soma_registration_requests")
     .select(`id, status, created_at, decided_at, rejection_reason,
-      requester:profiles!soma_registration_requests_requester_id_fkey(full_name, email, phone, age),
+      requester_id,
       soma:somas(name, description, neighborhood, weekday, start_time, end_time, frequency, location_hint, extra_info)`)
     .order("created_at", { ascending: false }).limit(100);
 
+  // Dados de contato via profiles_private (a tabela profiles não expõe celular/e-mail).
+  const contacts = await privateProfiles(supabase, (reqs ?? []).map((r) => r.requester_id));
   const pending = reqs?.filter((r) => r.status === "PENDING") ?? [];
   const decided = reqs?.filter((r) => r.status !== "PENDING") ?? [];
 
@@ -29,7 +32,7 @@ export default async function AdminSolicitacoesPage({ searchParams }: { searchPa
         <ul className="space-y-4">
           {pending.map((r) => {
             const s = r.soma as unknown as Record<string, string>;
-            const u = r.requester as unknown as Record<string, string>;
+            const u = (contacts.get(r.requester_id) ?? {}) as unknown as Record<string, string>;
             return (
               <li key={r.id} className="card space-y-3">
                 <div className="flex items-start justify-between gap-2">

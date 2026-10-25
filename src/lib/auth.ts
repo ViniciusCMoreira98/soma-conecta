@@ -22,7 +22,8 @@ export const getSessionProfile = cache(async () => {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
+  // profiles_private: o próprio perfil completo (a tabela profiles só expõe id, nome e foto).
+  const { data: profile } = await supabase.from("profiles_private").select("*").eq("id", user.id).single<Profile>();
   if (!profile) return null;
   return { supabase, user, profile };
 });

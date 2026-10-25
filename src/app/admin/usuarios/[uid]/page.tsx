@@ -14,7 +14,7 @@ export default async function AdminUsuarioPage({
   const sp = await searchParams;
   const { supabase, user: me } = await requireAdmin();
 
-  const { data: u } = await supabase.from("profiles")
+  const { data: u } = await supabase.from("profiles_private")
     .select("id, full_name, email, phone, age, has_bases, avatar_url, role, status, created_at").eq("id", uid).maybeSingle();
   if (!u) notFound();
 

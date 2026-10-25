@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { privateProfiles } from "@/lib/profiles";
 import { notFound } from "next/navigation";
 import { Alert, Avatar, ConfirmForm, StatusBadge } from "@/components/ui";
 import { transferLeadership } from "@/app/actions/community";
@@ -20,7 +21,7 @@ export default async function AdminSomaPage({
   if (!soma) notFound();
 
   let q = supabase.from("soma_members")
-    .select("user_id, role, status, joined_at, profile:profiles(full_name, email, phone, age, avatar_url, status)")
+    .select("user_id, role, status, joined_at")
     .eq("soma_id", id).order("role").order("joined_at");
   if (sp.todos !== "1") q = q.eq("status", "ACTIVE");
   const [{ data: members }, { count: meetings }, { count: pending }] = await Promise.all([
@@ -30,7 +31,8 @@ export default async function AdminSomaPage({
   ]);
 
   type P = { full_name: string | null; email: string; phone: string | null; age: number | null; avatar_url: string | null; status: string };
-  const list = (members ?? []).map((m) => ({ ...m, p: m.profile as unknown as P }));
+  const contacts = await privateProfiles(supabase, (members ?? []).map((m) => m.user_id));
+  const list = (members ?? []).map((m) => ({ ...m, p: contacts.get(m.user_id) as P }));
   const activeMembers = list.filter((m) => m.status === "ACTIVE" && m.role === "MEMBER" && m.p?.status === "ACTIVE");
   const back = `/admin/somas/${id}`;
 
