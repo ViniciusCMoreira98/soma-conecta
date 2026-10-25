@@ -2,12 +2,13 @@
 
 import { requestSomaRegistration, updateSomaSettings } from "@/app/actions/somas";
 import { Alert, Field, SubmitButton, useFormAction } from "@/components/ui";
+import LocationPicker from "@/components/LocationPicker";
 import { FREQUENCY_LABEL, WEEKDAY_LABEL } from "@/lib/labels";
 
 type Defaults = {
   name?: string; description?: string; neighborhood?: string; location_hint?: string | null;
   weekday?: string; start_time?: string; end_time?: string | null; frequency?: string;
-  extra_info?: string | null; accepting_members?: boolean;
+  extra_info?: string | null; accepting_members?: boolean; latitude?: number | null; longitude?: number | null;
 };
 
 
@@ -53,6 +54,7 @@ export default function SomaForm({
           hint="Ex.: perto da praça central. Evite o endereço completo: ele só deve ser combinado com quem entrar.">
           <input id="location_hint" name="location_hint" defaultValue={v?.location_hint ?? defaults.location_hint ?? ""} maxLength={200} className="input" />
         </Field>
+        <LocationPicker lat={defaults.latitude} lng={defaults.longitude} />
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Dia da semana" name="weekday" error={e.weekday}>
             <select id="weekday" name="weekday" defaultValue={v?.weekday ?? defaults.weekday ?? ""} required className="input">

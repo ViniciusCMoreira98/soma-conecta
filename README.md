@@ -3,6 +3,8 @@
 Plataforma web (pt-BR, mobile first) para gerir os SOMAS de uma igreja.
 Stack: Next.js 15 (App Router) + TypeScript + Tailwind CSS + Supabase (Postgres, Auth, Storage, Realtime, RLS).
 
+📐 Arquitetura, padrões e organização do projeto: [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
+
 ## Estado atual
 
 | Fase | Situação |
